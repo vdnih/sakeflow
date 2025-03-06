@@ -7,28 +7,18 @@ import type {
 } from 'microcms-js-sdk';
 import { notFound } from 'next/navigation';
 
-// タグの型定義
-export type Tag = {
+// カテゴリの型定義
+export type Category = {
   name: string;
-} & MicroCMSContentId &
-  MicroCMSDate;
-
-// ライターの型定義
-export type Writer = {
-  name: string;
-  profile: string;
-  image?: MicroCMSImage;
-} & MicroCMSContentId &
-  MicroCMSDate;
+  value: string;
+};
 
 // ブログの型定義
 export type Blog = {
   title: string;
-  description: string;
   content: string;
   thumbnail?: MicroCMSImage;
-  tags?: Tag[];
-  writer?: Writer;
+  category: Category;
 };
 
 export type Article = Blog & MicroCMSContentId & MicroCMSDate;
@@ -49,49 +39,42 @@ export const client = createClient({
 
 // ブログ一覧を取得
 export const getList = async (queries?: MicroCMSQueries) => {
-  const listData = await client
-    .getList<Blog>({
-      endpoint: 'blog',
+  try {
+    const listData = await client.getList<Blog>({
+      endpoint: 'blogs',
       queries,
-    })
-    .catch(notFound);
-  return listData;
+    });
+    return listData;
+  } catch (error) {
+    console.error('Failed to fetch blog list:', error);
+    throw error;
+  }
 };
 
 // ブログの詳細を取得
 export const getDetail = async (contentId: string, queries?: MicroCMSQueries) => {
-  const detailData = await client
-    .getListDetail<Blog>({
-      endpoint: 'blog',
+  try {
+    const detailData = await client.getListDetail<Blog>({
+      endpoint: 'blogs',
       contentId,
       queries,
-    })
-    .catch(notFound);
-
-  return detailData;
+    });
+    return detailData;
+  } catch (error) {
+    console.error('Failed to fetch blog detail:', error);
+    throw error;
+  }
 };
 
-// タグの一覧を取得
-export const getTagList = async (queries?: MicroCMSQueries) => {
-  const listData = await client
-    .getList<Tag>({
-      endpoint: 'tags',
-      queries,
-    })
-    .catch(notFound);
-
-  return listData;
-};
-
-// タグの詳細を取得
-export const getTag = async (contentId: string, queries?: MicroCMSQueries) => {
-  const detailData = await client
-    .getListDetail<Tag>({
-      endpoint: 'tags',
-      contentId,
-      queries,
-    })
-    .catch(notFound);
-
-  return detailData;
+// カテゴリ一覧を取得
+export const getCategoryList = async () => {
+  try {
+    const listData = await client.getList<Category>({
+      endpoint: 'categories',
+    });
+    return listData;
+  } catch (error) {
+    console.error('Failed to fetch category list:', error);
+    throw error;
+  }
 };
