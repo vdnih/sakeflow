@@ -12,7 +12,7 @@ export default function Nav({ categories }: Props) {
     <nav className={styles.nav}>
       <SearchField />
       {categories.map((category) => (
-        <CategoryList key={category.name} category={category} />
+        <CategoryList key={category.id} category={category} />
       ))}
     </nav>
   );

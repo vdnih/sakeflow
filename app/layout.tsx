@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: Props) {
     <html lang="ja">
       <body>
         <Header />
-        <Nav tags={categories.contents} />
+        <Nav categories={categories.contents} />
         <main className={styles.main}>{children}</main>
         <Footer />
       </body>
