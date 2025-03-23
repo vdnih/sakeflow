@@ -11,7 +11,15 @@ import { notFound } from 'next/navigation';
 export type Category = {
   name: string;
   value: string;
-};
+} & MicroCMSContentId & MicroCMSDate;
+
+// ライターの型定義
+export type Writer = {
+  name: string;
+  profile: string;
+  image?: MicroCMSImage;
+} & MicroCMSContentId &
+  MicroCMSDate;
 
 // ブログの型定義
 export type Blog = {
@@ -19,6 +27,8 @@ export type Blog = {
   content: string;
   thumbnail?: MicroCMSImage;
   category: Category;
+  writer: Writer;
+  description: string;
 };
 
 export type Article = Blog & MicroCMSContentId & MicroCMSDate;
@@ -75,6 +85,20 @@ export const getCategoryList = async () => {
     return listData;
   } catch (error) {
     console.error('Failed to fetch category list:', error);
+    throw error;
+  }
+};
+
+// カテゴリの詳細を取得
+export const getCategory = async (categoryId: string) => {
+  try {
+    const categoryData = await client.get({
+      endpoint: 'categories',
+      contentId: categoryId,
+    });
+    return categoryData;
+  } catch (error) {
+    console.error('Failed to fetch category:', error);
     throw error;
   }
 };

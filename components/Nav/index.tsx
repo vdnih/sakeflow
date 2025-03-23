@@ -1,17 +1,19 @@
-import { Tag } from '@/libs/microcms';
-import TagList from '@/components/TagList';
+import { Category } from '@/libs/microcms';
+import CategoryList from '@/components/CategoryList';
 import SearchField from '@/components/SearchField';
 import styles from './index.module.css';
 
 type Props = {
-  tags: Tag[];
+  categories: Category[];
 };
 
-export default function Nav({ tags }: Props) {
+export default function Nav({ categories }: Props) {
   return (
     <nav className={styles.nav}>
       <SearchField />
-      <TagList tags={tags} />
+      {categories.map((category) => (
+        <CategoryList key={category.name} category={category} />
+      ))}
     </nav>
   );
 }
