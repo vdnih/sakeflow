@@ -1,0 +1,10 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text {
+      font-family: 'Pacifico', 'Comic Sans MS', 'Brush Script MT', cursive;
+      font-size: 50px;
+      fill: #2c2c2c;
+    }
+  </style>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="text">sakeflow</text>
+</svg>
