@@ -11,9 +11,11 @@ export default function Nav({ categories }: Props) {
   return (
     <nav className={styles.nav}>
       <SearchField />
-      {categories.map((category) => (
-        <CategoryList key={category.id} category={category} />
-      ))}
+      <div className={styles.categories}>
+        {categories.map((category) => (
+          <CategoryList key={category.id} category={category} />
+        ))}
+      </div>
     </nav>
   );
 }

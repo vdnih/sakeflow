@@ -1,10 +1,16 @@
 .nav {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column; /* 縦方向に配置 */
+  align-items: center; /* 検索ボックスを中央揃え */
+  gap: 16px; /* 検索ボックスとカテゴリ一覧の間隔 */
   padding: 0 24px 24px;
   margin-bottom: 40px;
   border-bottom: 1px solid var(--color-border-light);
+}
+
+.categories {
+  display: flex; /* 横並びにする */
+  flex-wrap: wrap; /* 必要に応じて折り返し */
+  justify-content: center; /* 中央揃え */
+  gap: 8px; /* 各カテゴリ間のスペース */
 }
