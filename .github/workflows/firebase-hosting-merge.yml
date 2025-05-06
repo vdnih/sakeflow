@@ -11,6 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+      - run: flutter pub get
+        working-directory: apps/sakeflow_log
+      - run: flutter build web --release
+        working-directory: apps/sakeflow_log
       - run: cd functions && npm ci
       - run: cd functions && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
