@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1042083392568",
+    "project_id": "sakeflow",
+    "storage_bucket": "sakeflow.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042083392568:android:bd206e9e8fe1233b640acd",
+        "android_client_info": {
+          "package_name": "com.example.sakeflow_log"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB16b8MjuwI7LlFDbiscD0Eek9KQL8L2xs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
