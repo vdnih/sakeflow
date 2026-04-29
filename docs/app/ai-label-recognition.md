@@ -1,12 +1,16 @@
-# AIラベル認識機能設計ドキュメント（Firebase構成）
+# AI ラベル認識機能 設計ドキュメント（Firebase 構成）
+
+> バージョン: 1.1（2026-04-29 更新: 実装実態に合わせて整理）  
+> 機能 ID: F01  
+> 実装ファイル: `functions/src/index.ts`（`onImageUploaded`）, `app/lib/ai_label_screen.dart`
 
 ## 1. 概要
 
 - ユーザーが日本酒、ワイン、ビール、ウイスキー等、さまざまなお酒のラベル画像をアップロード
-- Firebase Storageに保存 → StorageトリガーでCloud Functions起動 → FunctionsがOpenAI API（gpt-4.1 Vision等）で画像認識
-- 結果（銘柄名・種類・スペック等）をFirestoreに格納
-- クライアントはジョブIDで結果をポーリング取得
-- お酒の種類はAIが自動判別し、必要に応じてユーザーが修正可能
+- Firebase Storage に保存 → Storage トリガーで Cloud Functions 起動 → Functions が OpenAI API（**gpt-4o** Vision）で画像認識
+- 結果（銘柄名・カテゴリ・タグ等）を Firestore に格納
+- クライアントは Firestore リアルタイムリスナーで結果を取得（ポーリング推奨から変更）
+- お酒の種類は AI が自動判別し、必要に応じてユーザーが修正可能
 
 ## 2. アーキテクチャ概要
 
@@ -70,21 +74,21 @@
 - Firestoreのリアルタイムリスナーによる進捗通知
 - 他サービス（酒データベース等）との連携
 
-## 9. ジョブIDの管理
+## 9. ジョブ ID の管理
 
-- ジョブIDはUUID（Universally Unique Identifier）を**クライアント側で生成**し、Storageアップロード時およびFirestoreドキュメント作成時に同じIDを利用する。
-- 画像は `ai_label_jobs/{job_id}.jpg` などのパスでFirebase Storageにアップロードする。
-- Firestoreでは `ai_label_jobs/{job_id}` ドキュメントとしてジョブ情報を管理する。
-- クライアントは自分で生成した `job_id` を保持し、Firestoreの該当ドキュメントを監視・取得できる。
-- StorageトリガーでCloud Functionsが起動し、AI推論→Firestoreの同じドキュメントを更新する。
+- ジョブ ID は UUID を**クライアント側で生成**し、Storage アップロード時および Firestore ドキュメント作成時に同じ ID を利用する。
+- 画像は `user_uploads/{userId}/{jobId}.jpg` のパスで Firebase Storage にアップロードする（Cloud Functions の `onImageUploaded` がこのパス形式で認識）。
+- Firestore では `ai_label_jobs/{jobId}` ドキュメントとしてジョブ情報を管理する。
+- クライアントは自分で生成した `jobId` を保持し、Firestore の該当ドキュメントをリアルタイムリスナーで監視する。
+- Storage トリガーで Cloud Functions が起動し、AI 推論 → Firestore の同じドキュメントを更新する。
 
 ### フロー例
 
-1. クライアントでUUIDを生成（例: `uuid`パッケージ利用）
-2. 画像を `ai_label_jobs/{job_id}.jpg` としてFirebase Storageにアップロード
-3. 同時にFirestoreに `ai_label_jobs/{job_id}` ドキュメント（status: running, image_url, created_at等）を作成
-4. StorageトリガーでCloud Functionsが起動し、AI推論→Firestoreの同じドキュメントを更新
-5. クライアントは自分で生成した `job_id` でFirestoreを監視・取得
+1. クライアントで UUID を生成（`uuid` パッケージ利用）
+2. 画像を `user_uploads/{userId}/{jobId}.jpg` として Firebase Storage にアップロード
+3. 同時に Firestore に `ai_label_jobs/{jobId}` ドキュメント（`status: "running"`, `image_url`, `created_at` 等）を作成
+4. Storage トリガーで Cloud Functions が起動し、AI 推論 → Firestore の同じドキュメントを更新
+5. クライアントは Firestore の `ai_label_jobs/{jobId}` をリアルタイムリスナーで監視・結果取得
 
 ## 10. Firestoreジョブ管理スキーマ設計
 
@@ -119,16 +123,11 @@ ai_label_jobs
   "job_id": "123e4567-e89b-12d3-a456-426614174000",
   "user_id": "uid_abc123",
   "status": "success",
-  "image_url": "gs://sakeflow-app/ai_label_jobs/123e4567-e89b-12d3-a456-426614174000.jpg",
+  "image_url": "gs://sakeflow-app/user_uploads/uid_abc123/123e4567-e89b-12d3-a456-426614174000.jpg",
   "type": "sake",
-  "result": {
-    "brand": "獺祭",
-    "brewery": "旭酒造",
-    "spec": "純米大吟醸 45",
-    "region": "山口県"
-  },
+  "result": "{\"name_jp\":\"獺祭 純米大吟醸 45\",\"name_en\":\"Dassai Junmai Daiginjo 45\",\"category_name\":\"日本酒\",\"tags\":[\"旭酒造\",\"山口県\",\"純米大吟醸\",\"山田錦\",\"フルーティー\"]}",
   "confidence": 0.98,
-  "ai_version": "gpt-4.1-vision",
+  "ai_version": "gpt-4o",
   "created_at": "2024-06-01T12:00:00Z",
   "updated_at": "2024-06-01T12:01:00Z"
 }
