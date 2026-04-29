@@ -9,11 +9,10 @@ sakeflowはお酒や旅を楽しむためのブランドです。
 
 ```
 sakeflow/
-├── apps/
-│   └── sakeflow_log/          # Flutter製アプリ本体（Firebase Hosting対象）
-│       ├── lib/
-│       ├── build/
-│       └── ...
+├── app/                       # Flutter製アプリ本体（Firebase Hosting対象）
+│   ├── lib/
+│   ├── build/
+│   └── ...
 │
 ├── blog/                      # ブランドサイト（Next.js、Vercelでホスティング）
 │   └── ...
@@ -31,7 +30,7 @@ sakeflow/
 ```
 
 ### 各ディレクトリの説明
-- **apps/sakeflow_log/**: Flutter製のアプリ本体。Firebase Hostingでホスティングされます。
+- **app/**: Flutter製のアプリ本体。Firebase Hostingでホスティングされます。
 - **blog/**: ブランドサイト（Next.js製）。Vercelでホスティングされます。
 - **functions/**: Firebase Functionsのコード（OpenAI連携などを含む）。
 - **docs/**: 要件定義・設計・Google Analytics設計などのドキュメント。Cursorで管理。
