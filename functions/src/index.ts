@@ -50,12 +50,11 @@ export const onImageUploaded = onObjectFinalized(
       await jobRef.update({
         status: "success",
         user_id: userId,
-        result: JSON.stringify({
-          name_jp: "テスト日本酒",
-          name_en: "Test Sake",
-          category_name: "日本酒",
-          tags: ["テスト", "モック", "純米大吟醸"],
-        }),
+        result: {
+          brand: "テスト日本酒",
+          brewery: "テスト酒造",
+          tags: ["純米大吟醸", "山田錦", "精米歩合50%"],
+        },
         updated_at: new Date(),
       });
       return;
@@ -72,75 +71,68 @@ export const onImageUploaded = onObjectFinalized(
         apiKey: openAiKey.value(),
       });
 
-      const systemPrompt = `
-  あなたは画像からお酒の情報を抽出するAIアシスタントです。
-  結果は必ずJSON形式で出力してください。
-  `;
+      const userPrompt =
+        "添付された日本酒のラベル画像から、銘柄(brand)と蔵元(brewery)を読み取ってください。" +
+        "それ以外のスペック（特定名称、酒米、精米歩合、製法、フレーバーなど）はすべて tags 配列に抽出してください。" +
+        "値が読み取れない場合は空文字または空配列にしてください。";
 
-      const userPrompt = `
-  この画像に写っているお酒の銘柄名（日本語、英語）、カテゴリ名（お酒の種類）、
-  特徴的なタグを抽出し、次の形式でJSONで返してください：
-
-  {
-    "name_jp": "獺祭 純米大吟醸 45",
-    "name_en": "Dassai Junmai Daiginjo 45",
-    "category_name": "日本酒",
-    "tags": ["旭酒造", "山口県", "純米大吟醸", "山田錦", "フルーティー"]
-  }
-
-  カテゴリ名は以下の選択肢から必ず1つ選んでください：
-  [
-    "日本酒", 
-    "ワイン", 
-    "ビール", 
-    "ウイスキー", 
-    "焼酎", 
-    "リキュール", 
-    "ブランデー", 
-    "ジン", 
-    "ウォッカ", 
-    "ラム", 
-    "その他"
-  ]
-
-  タグには、そのお酒の銘柄に関する様々な情報を含めてください。（例：分類、生産者、味わい、特徴 など。）
-
-  JSON以外の文字列は含めず、値が不明な場合は null または空の配列にしてください。
-  `;
-
-      // OpenAI Vision API呼び出し
+      // OpenAI Vision API呼び出し（Structured Outputs）
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
-            role: "system",
-            content: systemPrompt,
-          },
-          {
             role: "user",
             content: [
-              {
-                type: "text",
-                text: userPrompt,
-              },
+              {type: "text", text: userPrompt},
               {
                 type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`,
-                },
+                image_url: {url: `data:image/jpeg;base64,${base64Image}`},
               },
             ],
           },
         ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "sake_label",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                brand: {
+                  type: "string",
+                  description: "日本酒の銘柄名（例：獺祭、新政）",
+                },
+                brewery: {
+                  type: "string",
+                  description: "蔵元の名前（例：旭酒造、新政酒造）",
+                },
+                tags: {
+                  type: "array",
+                  items: {type: "string"},
+                  description: "特定名称・酒米・精米歩合・製法・フレーバー等のスペック",
+                },
+              },
+              required: ["brand", "brewery", "tags"],
+              additionalProperties: false,
+            },
+          },
+        },
         max_tokens: 1024,
       });
-      const result = response.choices[0].message?.content;
 
-      // Firestoreに結果を保存
+      const raw = response.choices[0].message?.content ?? "{}";
+      const {brand, brewery, tags} = JSON.parse(raw) as {
+        brand: string;
+        brewery: string;
+        tags: string[];
+      };
+
+      // Firestoreに構造化 map として保存
       await jobRef.update({
         status: "success",
         user_id: userId,
-        result: result,
+        result: {brand, brewery, tags},
         updated_at: new Date(),
       });
     } catch (e) {

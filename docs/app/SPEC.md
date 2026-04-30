@@ -45,9 +45,9 @@
 | record_id | string | レコード ID（UUID） | ✅ |
 | user_id | string | ユーザー ID | ✅ |
 | category_name | string | お酒カテゴリ（C01-C99 の type 値） | ✅ |
-| name_jp | string | 銘柄名（日本語） | ✅ |
-| name_en | string | 銘柄名（英語） | - |
-| tags | array<string> | タグ（生産者・味わい等） | - |
+| brand | string | 銘柄名（例：獺祭、新政）※ AI 抽出・ユーザー修正可 | ✅ |
+| brewery | string | 蔵元名（例：旭酒造、新政酒造）※ AI 抽出・ユーザー修正可 | - |
+| tags | array<string> | 特定名称・酒米・精米歩合・製法・フレーバー等のスペック | - |
 | rating | number | 評価（1.0-5.0、0.5 刻み） | - |
 | note | string | テイスティングノート・メモ | - |
 | image_url | string | 写真の Storage URL | - |
