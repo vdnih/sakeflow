@@ -18,7 +18,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
   String? _jobId;
   bool _uploading = false;
   bool _analyzing = false;
-  String? _result;
+  Map<String, dynamic>? _result;
   String? _errorMessage;
 
   Future<void> _pickImage() async {
@@ -104,8 +104,9 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
           if (status == 'success') {
             setState(() {
               _analyzing = false;
-              _result =
-                  data['result'] != null ? data['result'].toString() : '認識結果なし';
+              _result = data['result'] is Map<String, dynamic>
+                  ? data['result'] as Map<String, dynamic>
+                  : null;
             });
           } else if (status == 'failed') {
             setState(() {
@@ -121,6 +122,59 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
         _errorMessage = e.toString();
       });
     }
+  }
+
+  Widget _buildResultCard(Map<String, dynamic> result) {
+    final brand = result['brand'] as String? ?? '';
+    final brewery = result['brewery'] as String? ?? '';
+    final tags = (result['tags'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList();
+    return Card(
+      color: Colors.green[50],
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              brand,
+              style: const TextStyle(
+                fontSize: 22,
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (brewery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  brewery,
+                  style: TextStyle(fontSize: 15, color: Colors.green[700]),
+                ),
+              ),
+            if (tags.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: tags
+                      .map(
+                        (tag) => Chip(
+                          label: Text(tag, style: const TextStyle(fontSize: 12)),
+                          backgroundColor: Colors.green[100],
+                          padding: EdgeInsets.zero,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -189,22 +243,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
               ],
             ),
             const SizedBox(height: 32),
-            if (_result != null)
-              Card(
-                color: Colors.green[50],
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    _result!,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+            if (_result != null) _buildResultCard(_result!),
             if (_errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),

@@ -50,11 +50,11 @@
 
 コレクション: `ai_label_jobs`
 
-| job_id (docID) | status   | type     | result         | image_url                | created_at         | updated_at         |
-|---------------|----------|----------|---------------|-------------------------|--------------------|--------------------|
-| uuid          | running  | null     | null          | gs://...                | 2024-06-01T12:00Z  | 2024-06-01T12:00Z  |
-| uuid          | success  | sake     | {json result} | gs://...                | 2024-06-01T12:00Z  | 2024-06-01T12:01Z  |
-| uuid          | failed   | null     | {error}       | gs://...                | 2024-06-01T12:00Z  | 2024-06-01T12:01Z  |
+| job_id (docID) | status   | result                                   | image_url | created_at        | updated_at        |
+|---------------|----------|------------------------------------------|-----------|-------------------|-------------------|
+| uuid          | running  | null                                     | gs://...  | 2024-06-01T12:00Z | 2024-06-01T12:00Z |
+| uuid          | success  | `{brand, brewery, tags}` (Firestore map) | gs://...  | 2024-06-01T12:00Z | 2024-06-01T12:01Z |
+| uuid          | failed   | null                                     | gs://...  | 2024-06-01T12:00Z | 2024-06-01T12:01Z |
 
 ※詳細なスキーマ設計・フィールド説明・サンプル・インデックス・セキュリティルールは「10. Firestoreジョブ管理スキーマ設計」を参照。
 
@@ -108,9 +108,8 @@ ai_label_jobs
 | user_id        | string        | ユーザーID（認証ユーザーのUID）              | 必須      |
 | status         | string        | 'running' / 'success' / 'failed'             | 必須      |
 | image_url      | string        | Storageの画像URL（gs://... or https://...）  | 必須      |
-| type           | string/null   | お酒の種類（sake, wine, beer, whisky等）     | 任意      |
-| result         | map/null      | AI認識結果（銘柄名、スペック等のJSON）       | 任意      |
-| error          | map/null      | エラー内容（失敗時のみ）                     | 任意      |
+| result         | map/null      | AI認識結果（`brand`, `brewery`, `tags` を持つ Firestore map） | 任意 |
+| error          | string/null   | エラー内容（失敗時のみ）                     | 任意      |
 | created_at     | timestamp     | ジョブ作成日時                               | 必須      |
 | updated_at     | timestamp     | 最終更新日時                                 | 必須      |
 | ai_version     | string/null   | 使用したAIモデルのバージョン                 | 任意      |
@@ -124,8 +123,11 @@ ai_label_jobs
   "user_id": "uid_abc123",
   "status": "success",
   "image_url": "gs://sakeflow-app/user_uploads/uid_abc123/123e4567-e89b-12d3-a456-426614174000.jpg",
-  "type": "sake",
-  "result": "{\"name_jp\":\"獺祭 純米大吟醸 45\",\"name_en\":\"Dassai Junmai Daiginjo 45\",\"category_name\":\"日本酒\",\"tags\":[\"旭酒造\",\"山口県\",\"純米大吟醸\",\"山田錦\",\"フルーティー\"]}",
+  "result": {
+    "brand": "獺祭",
+    "brewery": "旭酒造",
+    "tags": ["純米大吟醸", "磨き二割三分", "山田錦", "山口県"]
+  },
   "confidence": 0.98,
   "ai_version": "gpt-4o",
   "created_at": "2024-06-01T12:00:00Z",
