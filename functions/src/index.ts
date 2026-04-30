@@ -44,6 +44,23 @@ export const onImageUploaded = onObjectFinalized(
     const firestore = getFirestore();
     const jobRef = firestore.collection("ai_label_jobs").doc(jobId);
 
+    // ローカルエミュレータでは AI 呼び出しをスキップしてモックデータを返す
+    // VertexAI 移行後もこのパターンを維持すること
+    if (process.env.FUNCTIONS_EMULATOR === "true") {
+      await jobRef.update({
+        status: "success",
+        user_id: userId,
+        result: JSON.stringify({
+          name_jp: "テスト日本酒",
+          name_en: "Test Sake",
+          category_name: "日本酒",
+          tags: ["テスト", "モック", "純米大吟醸"],
+        }),
+        updated_at: new Date(),
+      });
+      return;
+    }
+
     try {
       // 画像をバッファとして取得
       const bucket = getStorage().bucket();
