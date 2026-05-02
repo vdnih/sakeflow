@@ -127,6 +127,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
   Widget _buildResultCard(Map<String, dynamic> result) {
     final brand = result['brand'] as String? ?? '';
     final brewery = result['brewery'] as String? ?? '';
+    final prefecture = result['prefecture'] as String? ?? '';
     final tags = (result['tags'] as List<dynamic>? ?? [])
         .map((e) => e.toString())
         .toList();
@@ -152,6 +153,20 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
                 child: Text(
                   brewery,
                   style: TextStyle(fontSize: 15, color: Colors.green[700]),
+                ),
+              ),
+            if (prefecture.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: Colors.green[600]),
+                    const SizedBox(width: 2),
+                    Text(
+                      prefecture,
+                      style: TextStyle(fontSize: 13, color: Colors.green[600]),
+                    ),
+                  ],
                 ),
               ),
             if (tags.isNotEmpty)
