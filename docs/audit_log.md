@@ -6,6 +6,31 @@
 
 ## 2026-05-02
 
+### テイスティングノート・コレクション機能の実装
+
+- **内容**: 飲酒記録を「テイスティングノート（日時単位のイベントログ）」と「コレクション（銘柄単位のエンティティ）」に分離してFirestoreに保存し、それぞれ一覧画面で閲覧できるよう実装
+- **変更ファイル**:
+  - 新規: `docs/adr/0001-distributed-user-db-strategy.md` — アーキテクチャ方針3点をADRとして記録
+  - 新規: `app/lib/features/tasting_note/models/tasting_note.dart`
+  - 新規: `app/lib/features/collection/models/sake.dart`
+  - 新規: `app/lib/features/tasting_note/repositories/tasting_note_repository.dart`
+  - 新規: `app/lib/features/collection/repositories/sake_repository.dart`
+  - 新規: `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart`
+  - 更新: `app/lib/features/record/ai_label_screen.dart` — 保存フローをtasting_note作成に変更
+  - 更新: `app/lib/features/home/home_tab.dart` — テイスティングノート一覧を実装
+  - 更新: `app/lib/features/collection/collection_tab.dart` — コレクション一覧を実装
+  - 更新: `functions/src/index.ts` — `onAiLabelJobCompleted` を追加（AI解析完了時にtasting_note更新 + sake upsert）
+  - 更新: `docs/app/SPEC.md` — データモデル更新
+  - 更新: `docs/feature_registry.md`
+- **理由**: AI解析結果がFirestoreの`ai_label_jobs`に保存されるだけで、ユーザーの飲酒記録として永続化されていなかった。記録・一覧閲覧の基本機能を実装する
+- **決定事項**:
+  - **分散型DB** — 中央日本酒マスターDBは持たず、ユーザーごとに独立した`sakes`コレクションを管理（詳細: ADR-0001）
+  - **画像認識特化** — 入力補完はAIラベル認識のみ。テキストサジェストは実装しない（詳細: ADR-0001）
+  - **エンティティ/イベント分離** — `users/{userId}/sakes`（銘柄）と`users/{userId}/tasting_notes`（飲酒ログ）を別コレクションで管理。tasting_notes側に非正規化。書き込みはFirestore WriteBatchでアトミック性確保（詳細: ADR-0001）
+  - AI解析→ノート/コレクション更新はCloud Function側（`onAiLabelJobCompleted`）に集約し、クライアントの責務を軽減
+
+---
+
 ### ボトムナビゲーションバー実装・feature-based 構成への移行
 
 - **内容**: アプリのナビゲーション体系を再設計。ボトムナビゲーションバー（4タブ）と右下フローティングアクションボタン（記録）を実装
