@@ -1,6 +1,6 @@
 # sakeflow 機能レジストリ
 
-> 最終更新: 2026-05-02（ボトムナビ実装反映）  
+> 最終更新: 2026-05-02（テイスティングノート・コレクション実装）  
 > ステータス: 🟢RELEASED / 🟡IN_PROGRESS / ⚪PLANNED / 🔴BLOCKED
 
 ---
@@ -10,17 +10,17 @@
 | 機能 ID | 機能名 | ステータス | 実装ファイル | テストファイル | 画面 ID |
 |--------|------|---------|-----------|------------|--------|
 | F00 | ボトムナビゲーション | 🟢 | `app/lib/features/shell/main_shell.dart` | - | S01 |
-| F01 | AI ラベル認識 | 🟡 | `app/lib/features/record/ai_label_screen.dart` | - | S05 |
+| F01 | AI ラベル認識 | 🟢 | `app/lib/features/record/ai_label_screen.dart` | - | S05 |
 | F02 | パーソナライズ推薦 | ⚪ | - | - | S04 |
-| F03 | 飲酒記録 | ⚪ | - | - | S04, S06 |
-| F04 | レビュー投稿 | ⚪ | - | - | S07 |
+| F03 | テイスティングノート保存・一覧 | 🟢 | `app/lib/features/tasting_note/` | - | S06 |
+| F04 | テイスティングノート詳細・編集 | 🟢 | `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart` | - | S07 |
 | F05 | ユーザー認証 | 🟢 | `app/lib/auth_gate.dart`, `app/lib/main.dart` | - | S02, S03 |
 | F06 | プロフィール編集 | ⚪ | - | - | S08 |
 | F07 | 設定変更 | ⚪ | - | - | S09 |
-| F08 | 判別→記録連携 | ⚪ | - | - | S10 |
+| F08 | コレクション自動登録・一覧 | 🟢 | `app/lib/features/collection/` | - | S13 |
 | F09 | マップ（都道府県制覇） | ⚪ | - | - | S11 |
 | F10 | テイスト分析 | ⚪ | - | - | S12 |
-| F11 | コレクション一覧 | ⚪ | - | - | S13 |
+| F11 | レビュー投稿 | ⚪ | - | - | S10 |
 
 ## blog（sakeflow ブログサイト）
 
@@ -39,6 +39,7 @@
 |--------|------|---------|-----------|--------|
 | CF01 | AI ラベル認識 | 🟢 | `functions/src/index.ts` (`onImageUploaded`) | Storage onObjectFinalized |
 | CF02 | CI/CD 自動デプロイ | 🟢 | `.github/workflows/firebase-hosting-merge.yml` | main push |
+| CF03 | AI解析完了→ノート/コレクション更新 | 🟢 | `functions/src/index.ts` (`onAiLabelJobCompleted`) | Firestore onDocumentUpdated |
 
 ---
 

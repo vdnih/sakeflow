@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../tasting_note/repositories/tasting_note_repository.dart';
+import '../tasting_note/screens/tasting_note_detail_screen.dart';
 
 class AiLabelScreen extends StatefulWidget {
   const AiLabelScreen({super.key});
@@ -15,17 +17,15 @@ class AiLabelScreen extends StatefulWidget {
 
 class _AiLabelScreenState extends State<AiLabelScreen> {
   Uint8List? _imageBytes;
-  String? _jobId;
   bool _uploading = false;
-  bool _analyzing = false;
-  Map<String, dynamic>? _result;
   String? _errorMessage;
+
+  final _noteRepo = TastingNoteRepository();
 
   Future<void> _pickImage() async {
     setState(() {
       _errorMessage = null;
-      _result = null;
-      _jobId = null;
+      _imageBytes = null;
     });
     try {
       final picker = ImagePicker();
@@ -43,153 +43,69 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
     }
   }
 
-  Future<void> _uploadAndCreateJob() async {
+  Future<void> _saveAndAnalyze() async {
     if (_imageBytes == null) return;
     setState(() {
       _uploading = true;
       _errorMessage = null;
-      _result = null;
     });
     try {
-      final jobId = const Uuid().v4();
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('ユーザーが認証されていません');
       final userId = user.uid;
+      final jobId = const Uuid().v4();
+
+      // 1. Storageへアップロード
       final storagePath = 'user_uploads/$userId/$jobId.jpg';
       final storageRef = FirebaseStorage.instance.ref().child(storagePath);
       await storageRef.putData(_imageBytes!);
       final imageUrl = await storageRef.getDownloadURL();
+
+      // 2. ai_label_job を作成（Storage トリガーが AI 解析を開始）
       final now = Timestamp.now();
       await FirebaseFirestore.instance
           .collection('ai_label_jobs')
           .doc(jobId)
           .set({
-            'job_id': jobId,
-            'user_id': userId,
-            'status': 'running',
-            'image_url': imageUrl,
-            'storage_path': storagePath,
-            'created_at': now,
-            'updated_at': now,
-          });
-      setState(() {
-        _jobId = jobId;
+        'job_id': jobId,
+        'user_id': userId,
+        'status': 'running',
+        'image_url': imageUrl,
+        'storage_path': storagePath,
+        'created_at': now,
+        'updated_at': now,
       });
+
+      // 3. tasting_note を "processing" 状態で作成
+      final noteId = await _noteRepo.createNote(
+        userId: userId,
+        imageUrl: imageUrl,
+        jobId: jobId,
+        drankAt: now.toDate(),
+      );
+
+      if (!mounted) return;
+      // 4. 詳細画面へ遷移（バックグラウンドで解析が進む）
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TastingNoteDetailScreen(
+            userId: userId,
+            noteId: noteId,
+          ),
+        ),
+      );
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
       });
     } finally {
-      setState(() {
-        _uploading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _uploading = false;
+        });
+      }
     }
-  }
-
-  Future<void> _watchJobResult() async {
-    if (_jobId == null) return;
-    setState(() {
-      _analyzing = true;
-      _errorMessage = null;
-      _result = null;
-    });
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('ai_label_jobs')
-          .doc(_jobId);
-      docRef.snapshots().listen((doc) {
-        if (doc.exists) {
-          final data = doc.data()!;
-          final status = data['status'] as String?;
-          if (status == 'success') {
-            setState(() {
-              _analyzing = false;
-              _result = data['result'] is Map<String, dynamic>
-                  ? data['result'] as Map<String, dynamic>
-                  : null;
-            });
-          } else if (status == 'failed') {
-            setState(() {
-              _analyzing = false;
-              _errorMessage = data['error']?.toString() ?? 'AI認識に失敗しました';
-            });
-          }
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _analyzing = false;
-        _errorMessage = e.toString();
-      });
-    }
-  }
-
-  Widget _buildResultCard(Map<String, dynamic> result) {
-    final brand = result['brand'] as String? ?? '';
-    final brewery = result['brewery'] as String? ?? '';
-    final prefecture = result['prefecture'] as String? ?? '';
-    final tags = (result['tags'] as List<dynamic>? ?? [])
-        .map((e) => e.toString())
-        .toList();
-    return Card(
-      color: Colors.green[50],
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              brand,
-              style: const TextStyle(
-                fontSize: 22,
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (brewery.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  brewery,
-                  style: TextStyle(fontSize: 15, color: Colors.green[700]),
-                ),
-              ),
-            if (prefecture.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.green[600]),
-                    const SizedBox(width: 2),
-                    Text(
-                      prefecture,
-                      style: TextStyle(fontSize: 13, color: Colors.green[600]),
-                    ),
-                  ],
-                ),
-              ),
-            if (tags.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: tags
-                      .map(
-                        (tag) => Chip(
-                          label: Text(tag, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: Colors.green[100],
-                          padding: EdgeInsets.zero,
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -198,6 +114,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
       appBar: AppBar(
         title: const Text('AIラベル認識'),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -207,19 +124,20 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
             _imageBytes == null
                 ? const Text('カメラでラベルを撮影してください')
                 : ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.memory(_imageBytes!, height: 240),
-                ),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.memory(_imageBytes!, height: 240),
+                  ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
-                  onPressed: _uploading || _analyzing ? null : _pickImage,
+                  onPressed: _uploading ? null : _pickImage,
                   icon: const Icon(Icons.camera_alt),
                   label: const Text('カメラで撮影'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 16,
@@ -228,27 +146,23 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
-                  onPressed:
-                      (_imageBytes != null && !_uploading && !_analyzing)
-                          ? () async {
-                            await _uploadAndCreateJob();
-                            await _watchJobResult();
-                          }
-                          : null,
-                  icon: const Icon(Icons.cloud_upload),
-                  label:
-                      _uploading
-                          ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : const Text('アップロード＆認識開始'),
+                  onPressed: (_imageBytes != null && !_uploading)
+                      ? _saveAndAnalyze
+                      : null,
+                  icon: _uploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save),
+                  label: const Text('保存して解析開始'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 16,
@@ -257,8 +171,6 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            if (_result != null) _buildResultCard(_result!),
             if (_errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),

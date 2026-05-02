@@ -10,10 +10,10 @@
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import {onObjectFinalized} from "firebase-functions/v2/storage";
-import {getFirestore} from "firebase-admin/firestore";
+import {onDocumentUpdated} from "firebase-functions/v2/firestore";
+import {getFirestore, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {initializeApp} from "firebase-admin/app";
 import {OpenAI} from "openai";
-// import * as functions from "firebase-functions";
 import {getStorage} from "firebase-admin/storage";
 import {defineSecret} from "firebase-functions/params";
 
@@ -154,5 +154,115 @@ export const onImageUploaded = onObjectFinalized(
         updated_at: new Date(),
       });
     }
+  }
+);
+
+export const onAiLabelJobCompleted = onDocumentUpdated(
+  "ai_label_jobs/{jobId}",
+  async (event) => {
+    const after = event.data?.after.data();
+    const before = event.data?.before.data();
+    if (!after || !before) return;
+
+    // status が success に変わった場合のみ処理
+    if (before.status === "success" || after.status !== "success") return;
+
+    const userId = after.user_id as string;
+    const jobId = event.params.jobId;
+    const result = after.result as {
+      brand: string;
+      brewery: string;
+      prefecture: string;
+      tags: string[];
+    } | undefined;
+    if (!result) return;
+
+    const firestore = getFirestore();
+    const drankAt = after.created_at as Timestamp;
+
+    // job_id が一致する tasting_note を検索
+    const notesSnap = await firestore
+      .collection("users")
+      .doc(userId)
+      .collection("tasting_notes")
+      .where("job_id", "==", jobId)
+      .limit(1)
+      .get();
+
+    if (notesSnap.empty) {
+      logger.warn(`tasting_note not found for job_id=${jobId}`);
+      return;
+    }
+
+    const noteRef = notesSnap.docs[0].ref;
+    const noteData = notesSnap.docs[0].data();
+    const imageUrl = noteData.image_url as string;
+
+    // sakes コレクションで brand + user が一致するものを検索
+    const sakesSnap = await firestore
+      .collection("users")
+      .doc(userId)
+      .collection("sakes")
+      .where("brand", "==", result.brand)
+      .limit(1)
+      .get();
+
+    const now = new Date();
+    const batch = firestore.batch();
+
+    let sakeId: string;
+    if (!sakesSnap.empty) {
+      // 既存銘柄: tasting_count をインクリメント、last_drank_at を更新
+      const sakeRef = sakesSnap.docs[0].ref;
+      sakeId = sakesSnap.docs[0].id;
+      batch.update(sakeRef, {
+        brewery: result.brewery,
+        prefecture: result.prefecture,
+        image_url: imageUrl,
+        tasting_count: FieldValue.increment(1),
+        last_drank_at: drankAt,
+        updated_at: now,
+      });
+    } else {
+      // 新規銘柄を作成
+      sakeId = firestore
+        .collection("users")
+        .doc(userId)
+        .collection("sakes")
+        .doc().id;
+      const sakeRef = firestore
+        .collection("users")
+        .doc(userId)
+        .collection("sakes")
+        .doc(sakeId);
+      batch.set(sakeRef, {
+        sake_id: sakeId,
+        user_id: userId,
+        brand: result.brand,
+        brewery: result.brewery,
+        prefecture: result.prefecture,
+        category: "sake",
+        image_url: imageUrl,
+        tasting_count: 1,
+        first_drank_at: drankAt,
+        last_drank_at: drankAt,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    // tasting_note を ready 状態に更新
+    batch.update(noteRef, {
+      status: "ready",
+      sake_id: sakeId,
+      brand: result.brand,
+      brewery: result.brewery,
+      prefecture: result.prefecture,
+      tags: result.tags,
+      updated_at: now,
+    });
+
+    await batch.commit();
+    logger.info(`tasting_note updated: noteId=${noteRef.id}, sakeId=${sakeId}`);
   }
 );

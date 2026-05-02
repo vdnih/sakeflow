@@ -1,7 +1,7 @@
 # sakeflow-log アプリ SPEC（ビジネスルール仕様）
 
-> バージョン: 1.0  
-> 最終更新: 2026-04-29
+> バージョン: 1.1  
+> 最終更新: 2026-05-02
 
 ---
 
@@ -38,22 +38,48 @@
 | created_at | timestamp | 登録日時 | ✅ |
 | updated_at | timestamp | 最終更新日時 | ✅ |
 
-### records コレクション（`users/{userId}/records/{recordId}`）
+### tasting_notes コレクション（`users/{userId}/tasting_notes/{noteId}`）
+
+飲酒イベントログ。同じ銘柄を複数回飲んだ場合、飲むたびに1ドキュメントが追加される。
 
 | フィールド | 型 | 説明 | 必須 |
 |---------|---|------|------|
-| record_id | string | レコード ID（UUID） | ✅ |
+| note_id | string | ノート ID（UUID） | ✅ |
 | user_id | string | ユーザー ID | ✅ |
-| category_name | string | お酒カテゴリ（C01-C99 の type 値） | ✅ |
-| brand | string | 銘柄名（例：獺祭、新政）※ AI 抽出・ユーザー修正可 | ✅ |
-| brewery | string | 蔵元名（例：旭酒造、新政酒造）※ AI 抽出・ユーザー修正可 | - |
-| tags | array<string> | 特定名称・酒米・精米歩合・製法・フレーバー等のスペック | - |
-| rating | number | 評価（1.0-5.0、0.5 刻み） | - |
-| note | string | テイスティングノート・メモ | - |
-| image_url | string | 写真の Storage URL | - |
-| job_id | string | AI ラベル認識ジョブ ID（紐付け用） | - |
+| sake_id | string | sakes コレクションへの参照（解析完了後にセット） | - |
+| status | string | "processing" / "ready" / "failed" | ✅ |
+| image_url | string | 写真の Storage URL | ✅ |
 | drank_at | timestamp | 飲んだ日時 | ✅ |
+| location | map | `{lat, lng, place_name}` ※ Phase 2 | - |
+| brand | string | 銘柄名 ※ AI 抽出・ユーザー修正可 | - |
+| brewery | string | 蔵元名 ※ AI 抽出・ユーザー修正可 | - |
+| prefecture | string | 都道府県 ※ AI 抽出・ユーザー修正可 | - |
+| category | string | お酒カテゴリ（type 値）デフォルト "sake" | - |
+| tags | array\<string\> | 特定名称・酒米・精米歩合・製法・フレーバー等のスペック | - |
+| rating | number | 評価（1.0-5.0、0.5 刻み） | - |
+| note | string | テイスティングメモ（最大 1000 文字） | - |
+| job_id | string | AI ラベル認識ジョブ ID（紐付け用） | ✅ |
 | created_at | timestamp | 記録作成日時 | ✅ |
+| updated_at | timestamp | 最終更新日時 | ✅ |
+
+### sakes コレクション（`users/{userId}/sakes/{sakeId}`）
+
+銘柄エンティティ。同じ銘柄は1ドキュメント。tasting_notes から自動集計される。
+
+| フィールド | 型 | 説明 | 必須 |
+|---------|---|------|------|
+| sake_id | string | 銘柄 ID（UUID） | ✅ |
+| user_id | string | ユーザー ID | ✅ |
+| brand | string | 銘柄名（重複排除キー） | ✅ |
+| brewery | string | 蔵元名 | - |
+| prefecture | string | 都道府県 | - |
+| category | string | お酒カテゴリ（type 値） | ✅ |
+| image_url | string | 最新の写真 URL | - |
+| tasting_count | number | 飲んだ回数（自動集計） | ✅ |
+| avg_rating | number | 平均評価（自動集計） | - |
+| first_drank_at | timestamp | 初めて飲んだ日時 | ✅ |
+| last_drank_at | timestamp | 直近に飲んだ日時 | ✅ |
+| created_at | timestamp | 作成日時 | ✅ |
 | updated_at | timestamp | 最終更新日時 | ✅ |
 
 ### ai_label_jobs コレクション（`ai_label_jobs/{jobId}`）
