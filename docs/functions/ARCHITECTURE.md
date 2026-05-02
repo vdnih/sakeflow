@@ -1,7 +1,7 @@
 # Cloud Functions アーキテクチャ
 
-> バージョン: 1.0  
-> 最終更新: 2026-04-29
+> バージョン: 1.1  
+> 最終更新: 2026-05-02
 
 ---
 
@@ -82,29 +82,37 @@ OpenAI API（gpt-4o）に画像 + プロンプト送信
 
 ### OpenAI API 呼び出し
 
+Structured Outputs（`json_schema` モード）を使用し、JSON を厳密な型で受け取る。
+
 ```typescript
 const response = await openai.chat.completions.create({
   model: "gpt-4o",
   messages: [
-    { role: "system", content: systemPrompt },
     { role: "user", content: [{ type: "text", text: userPrompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }] }
   ],
+  response_format: {
+    type: "json_schema",
+    json_schema: {
+      name: "sake_label",
+      strict: true,
+      schema: { type: "object", properties: { brand: { type: "string" }, brewery: { type: "string" }, tags: { type: "array", items: { type: "string" } } }, required: ["brand", "brewery", "tags"], additionalProperties: false }
+    }
+  },
   max_tokens: 1024,
 });
 ```
 
-### AI レスポンス形式
+### AI レスポンス形式（Firestore 保存形式）
 
 ```json
 {
-  "name_jp": "獺祭 純米大吟醸 45",
-  "name_en": "Dassai Junmai Daiginjo 45",
-  "category_name": "日本酒",
-  "tags": ["旭酒造", "山口県", "純米大吟醸", "山田錦", "フルーティー"]
+  "brand": "獺祭",
+  "brewery": "旭酒造",
+  "tags": ["純米大吟醸", "山田錦", "精米歩合45%", "フルーティー"]
 }
 ```
 
-**カテゴリ選択肢**: 日本酒, ワイン, ビール, ウイスキー, 焼酎, リキュール, ブランデー, ジン, ウォッカ, ラム, その他
+`result` フィールドは Firestore マップ型として保存される（文字列ではない）。
 
 ---
 
@@ -142,7 +150,21 @@ export const onImageUploaded = onObjectFinalized(
 
 デプロイ前に lint + TypeScript コンパイルを自動実行。
 
-### デプロイコマンド
+### CI/CD 自動デプロイ（GitHub Actions）
+
+`main` ブランチへの push 時に `.github/workflows/firebase-hosting-merge.yml` が実行され、Cloud Functions が自動デプロイされる。
+
+**GitHub Actions SA に必要な GCP 権限**（`github-action-XXXXXX@sakeflow.iam.gserviceaccount.com`）:
+
+| ロール | 用途 |
+|------|------|
+| Cloud Functions 開発者 | 関数のデプロイ |
+| Service Account User | `sakeflow@appspot.gserviceaccount.com` への actAs |
+| Secret Manager Viewer | デプロイ時のシークレット存在確認（`secrets.get`） |
+| Secret Manager Secret Accessor | シークレット値の参照 |
+| Cloud Billing API 有効化 | billing チェックに必要 |
+
+### ローカルデプロイコマンド（手動）
 
 ```bash
 firebase deploy --only functions
@@ -152,7 +174,7 @@ firebase deploy --only functions
 
 ## 今後の拡張予定
 
-- AI レスポンスの JSON パース強化（現在は文字列レスポンスをそのまま保存）
 - HTTP API エンドポイントの追加（画像アップロード経由での呼び出し対応）
 - リトライロジックの実装（OpenAI API のタイムアウト・エラー対応）
 - 関数のファイル分割（機能別に `src/` 配下へ）
+- `logger.info` の追加（現在ログが出力されないため本番デバッグが困難）
