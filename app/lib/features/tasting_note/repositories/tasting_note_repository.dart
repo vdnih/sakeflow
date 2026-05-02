@@ -61,6 +61,7 @@ class TastingNoteRepository {
     required List<String> tags,
     double? rating,
     String? note,
+    bool? drankLocally,
   }) async {
     await _col(userId).doc(noteId).update({
       'brand': brand,
@@ -69,6 +70,7 @@ class TastingNoteRepository {
       'tags': tags,
       if (rating != null) 'rating': rating,
       if (note != null) 'note': note,
+      if (drankLocally != null) 'drank_locally': drankLocally,
       'updated_at': Timestamp.fromDate(DateTime.now()),
     });
   }
