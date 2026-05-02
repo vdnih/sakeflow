@@ -29,6 +29,7 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
   late TextEditingController _noteCtrl;
   List<String> _tags = [];
   double _rating = 0;
+  bool _drankLocally = false;
   bool _saving = false;
 
   @override
@@ -49,14 +50,18 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
     super.dispose();
   }
 
+  bool _formInitialized = false;
+
   void _populateForm(TastingNote note) {
-    if (_brandCtrl.text.isEmpty && note.brand.isNotEmpty) {
+    if (!_formInitialized && note.brand.isNotEmpty) {
       _brandCtrl.text = note.brand;
       _breweryCtrl.text = note.brewery;
       _prefectureCtrl.text = note.prefecture;
       _tags = List.from(note.tags);
       _rating = note.rating ?? 0;
       _noteCtrl.text = note.note ?? '';
+      _drankLocally = note.drankLocally;
+      _formInitialized = true;
     }
   }
 
@@ -76,6 +81,7 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
         tags: _tags,
         rating: _rating > 0 ? _rating : null,
         note: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+        drankLocally: _drankLocally,
       ));
 
       // sake も同期（銘柄名が変わっていれば sake 側も更新）
@@ -235,6 +241,8 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
                 prefixIcon: Icon(Icons.location_on),
               ),
             ),
+            const SizedBox(height: 12),
+            _buildDrankLocallyCheckbox(),
             const SizedBox(height: 16),
             _buildSectionLabel('タグ'),
             const SizedBox(height: 8),
@@ -353,6 +361,66 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
         );
       },
     );
+  }
+
+  Widget _buildDrankLocallyCheckbox() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: CheckboxListTile(
+        value: _drankLocally,
+        controlAffinity: ListTileControlAffinity.leading,
+        activeColor: Colors.deepPurple,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        title: const Text('現地で飲んだ'),
+        subtitle: const Text(
+          '産地の都道府県で飲んだ場合にチェック',
+          style: TextStyle(fontSize: 11),
+        ),
+        onChanged: (value) async {
+          if (value == true) {
+            await _confirmDrankLocally();
+          } else {
+            setState(() => _drankLocally = false);
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmDrankLocally() async {
+    final pref = _prefectureCtrl.text.trim();
+    final brand = _brandCtrl.text.trim();
+    if (pref.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('先に都道府県を入力してください')),
+      );
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('現地で飲んだ記録'),
+        content: Text(
+          '${brand.isNotEmpty ? brand : 'このお酒'}は$prefのお酒です。\n$prefでこのお酒を飲んだ記録をしますか？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('いいえ'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('はい'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      setState(() => _drankLocally = true);
+    }
   }
 
   Widget _buildRatingSelector() {

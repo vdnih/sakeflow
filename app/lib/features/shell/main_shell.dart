@@ -15,11 +15,11 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _tabs = [
-    HomeTab(),
+  static final List<Widget> _tabs = [
+    const HomeTab(),
     MapTab(),
-    AnalysisTab(),
-    CollectionTab(),
+    const AnalysisTab(),
+    const CollectionTab(),
   ];
 
   void _onTabTapped(int index) {

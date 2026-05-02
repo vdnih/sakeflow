@@ -30,6 +30,7 @@ class TastingNote {
   final List<String> tags;
   final double? rating;
   final String? note;
+  final bool drankLocally;
   final String jobId;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -48,6 +49,7 @@ class TastingNote {
     required this.tags,
     this.rating,
     this.note,
+    this.drankLocally = false,
     required this.jobId,
     required this.createdAt,
     required this.updatedAt,
@@ -69,6 +71,7 @@ class TastingNote {
       tags: List<String>.from(data['tags'] as List? ?? []),
       rating: (data['rating'] as num?)?.toDouble(),
       note: data['note'] as String?,
+      drankLocally: data['drank_locally'] as bool? ?? false,
       jobId: data['job_id'] as String? ?? '',
       createdAt: (data['created_at'] as Timestamp).toDate(),
       updatedAt: (data['updated_at'] as Timestamp).toDate(),
@@ -90,6 +93,7 @@ class TastingNote {
       'tags': tags,
       if (rating != null) 'rating': rating,
       if (note != null) 'note': note,
+      'drank_locally': drankLocally,
       'job_id': jobId,
       'created_at': Timestamp.fromDate(createdAt),
       'updated_at': Timestamp.fromDate(updatedAt),
@@ -106,6 +110,7 @@ class TastingNote {
     List<String>? tags,
     double? rating,
     String? note,
+    bool? drankLocally,
     DateTime? updatedAt,
   }) {
     return TastingNote(
@@ -122,6 +127,7 @@ class TastingNote {
       tags: tags ?? this.tags,
       rating: rating ?? this.rating,
       note: note ?? this.note,
+      drankLocally: drankLocally ?? this.drankLocally,
       jobId: jobId,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
