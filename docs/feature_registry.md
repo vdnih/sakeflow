@@ -34,6 +34,7 @@
 | 機能 ID | 機能名 | ステータス | 実装ファイル | トリガー |
 |--------|------|---------|-----------|--------|
 | CF01 | AI ラベル認識 | 🟢 | `functions/src/index.ts` (`onImageUploaded`) | Storage onObjectFinalized |
+| CF02 | CI/CD 自動デプロイ | 🟢 | `.github/workflows/firebase-hosting-merge.yml` | main push |
 
 ---
 
