@@ -6,6 +6,25 @@
 
 ## 2026-05-02
 
+### ボトムナビゲーションバー実装・feature-based 構成への移行
+
+- **内容**: アプリのナビゲーション体系を再設計。ボトムナビゲーションバー（4タブ）と右下フローティングアクションボタン（記録）を実装
+- **変更ファイル**:
+  - `app/lib/features/shell/main_shell.dart`（新規）: `IndexedStack` + `BottomNavigationBar` + `FloatingActionButton` を持つシェルウィジェット
+  - `app/lib/features/home/home_tab.dart`（新規）: ホームタブ
+  - `app/lib/features/map/map_tab.dart`（新規）: マップタブ（プレースホルダー）
+  - `app/lib/features/analysis/analysis_tab.dart`（新規）: 分析タブ（プレースホルダー）
+  - `app/lib/features/collection/collection_tab.dart`（新規）: コレクションタブ（プレースホルダー）
+  - `app/lib/features/record/ai_label_screen.dart`（移動）: `lib/` 直下から `features/record/` へ
+  - `app/lib/auth_gate.dart`（修正）: `HomeScreen` → `MainShell` に切り替え
+  - `app/lib/main.dart`（修正）: `/home` ルートを `MainShell` に、`/ai-label` ルートを削除
+- **決定事項**:
+  - 記録アクションはナビバーの中央タブではなく、右下 FAB（`FloatingActionButtonLocation.endFloat`）に配置。最頻アクションを親指の届く位置に置くため
+  - タブ数は4（ホーム・マップ・分析・コレクション）。記録は FAB 専用にしナビバーを5項目にしない
+  - タブ切り替えは `IndexedStack` でスクロール位置等を保持
+
+---
+
 ### CI/CD 権限修正・Cloud Functions 本番デプロイ完了
 
 - **内容**: 画像認識機能が本番環境で動作しない問題を調査・修正。CI/CD の Cloud Functions デプロイステップが権限エラーで失敗し続けていたため、最新コードが本番に反映されていなかった

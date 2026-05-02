@@ -1,28 +1,40 @@
 # sakeflow-log アプリ ソフトウェアアーキテクチャ
 
-> バージョン: 1.0  
-> 最終更新: 2026-04-29
+> バージョン: 1.1  
+> 最終更新: 2026-05-02
 
 ---
 
 ## アーキテクチャ方針
 
-### 現状（Phase 1）
+### 現状（Phase 1 完了）
 
-フラット構成で初期実装を行っています。`app/lib/` 直下にファイルが置かれています。
+feature-based ディレクトリ構成へ移行済み。`MainShell` がボトムナビゲーションと FAB を所有し、全タブのシェルとして機能します。
 
 ```
 app/lib/
-├── main.dart              # エントリーポイント・ルーティング
-├── auth_gate.dart         # 認証状態監視
-├── home_screen.dart       # ホーム画面
-├── ai_label_screen.dart   # AI ラベル認識画面
-└── firebase_options.dart  # Firebase 設定（自動生成）
+├── main.dart                    # エントリーポイント・ルーティング
+├── auth_gate.dart               # 認証状態監視（MainShell へリダイレクト）
+├── home_screen.dart             # 旧ホーム画面（次 PR で削除予定）
+├── ai_label_screen.dart         # 旧記録画面（次 PR で削除予定）
+├── firebase_options.dart        # Firebase 設定（自動生成）
+├── emulator_config.dart         # ローカルエミュレータ接続（デバッグ用）
+└── features/
+    ├── shell/
+    │   └── main_shell.dart      # ボトムナビ（4タブ）+ 記録 FAB
+    ├── home/
+    │   └── home_tab.dart        # ホームタブ（ユーザー情報・最近の記録）
+    ├── map/
+    │   └── map_tab.dart         # マップタブ（プレースホルダー）
+    ├── analysis/
+    │   └── analysis_tab.dart    # 分析タブ（プレースホルダー）
+    ├── collection/
+    │   └── collection_tab.dart  # コレクションタブ（プレースホルダー）
+    └── record/
+        └── ai_label_screen.dart # AI ラベル認識画面（FAB から起動）
 ```
 
 ### 目標構成（Phase 2 以降）
-
-機能追加に備え、feature-based ディレクトリ構成に移行します。
 
 ```
 app/lib/
@@ -32,20 +44,18 @@ app/lib/
 │   ├── auth/
 │   │   └── auth_gate.dart
 │   ├── theme/                     # テーマ・カラー定義
-│   └── router/                    # ルーティング定義
-└── features/                      # 機能別
-    ├── home/
-    │   └── home_screen.dart
-    ├── label_recognition/         # AI ラベル認識（F01）
-    │   ├── ai_label_screen.dart
-    │   └── label_recognition_service.dart
-    ├── record/                    # 飲酒記録（F03, F08）
-    │   ├── record_screen.dart
-    │   └── record_repository.dart
-    ├── sake_detail/               # お酒詳細（S06）
-    ├── review/                    # レビュー（F04）
-    ├── profile/                   # プロフィール（F06）
-    └── settings/                  # 設定（F07）
+│   └── router/                    # ルーティング定義（GoRouter 移行予定）
+└── features/
+    ├── shell/                     # ✅ 実装済み
+    ├── home/                      # ✅ 実装済み（コンテンツ拡充予定）
+    ├── map/                       # 🚧 プレースホルダー
+    ├── analysis/                  # 🚧 プレースホルダー
+    ├── collection/                # 🚧 プレースホルダー
+    ├── record/                    # ✅ AI ラベル認識実装済み
+    ├── sake_detail/               # ⚪ 未着手
+    ├── review/                    # ⚪ 未着手
+    ├── profile/                   # ⚪ 未着手
+    └── settings/                  # ⚪ 未着手
 ```
 
 ---
@@ -87,6 +97,14 @@ Riverpod v2 の導入を推奨：
 ### 現状
 
 `MaterialApp.routes` による静的ルーティング（`app/lib/main.dart`）。
+
+| ルート | 画面 | 備考 |
+|--------|------|------|
+| `/login` | `SignInScreen` | Firebase UI Auth（Google OAuth） |
+| `/home` | `MainShell` | ボトムナビシェル（ログイン後の起点） |
+
+タブ間遷移は `IndexedStack` による切り替えのみ（named route 不使用）。  
+記録画面（`AiLabelScreen`）は FAB から `Navigator.push` で起動。
 
 ### 移行計画（Phase 2）
 
