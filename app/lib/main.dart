@@ -6,8 +6,7 @@ import 'auth_gate.dart';
 import 'emulator_config.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
-import 'home_screen.dart';
-import 'ai_label_screen.dart';
+import 'features/shell/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,8 +35,7 @@ class MyApp extends StatelessWidget {
                 }),
               ],
             ),
-        '/home': (context) => const HomeScreen(),
-        '/ai-label': (context) => const AiLabelScreen(),
+        '/home': (context) => const MainShell(),
       },
     );
   }
