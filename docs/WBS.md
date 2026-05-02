@@ -1,6 +1,6 @@
 # sakeflow WBS（作業分解構成図）
 
-> 最終更新: 2026-04-29  
+> 最終更新: 2026-05-02  
 > ステータス定義: ⬜TODO / 🔄IN_PROGRESS / ✅DONE / ❌BLOCKED / 🔁REDO
 
 ---
@@ -27,12 +27,12 @@
 
 | タスク ID | タスク名 | ステータス | 対象ファイル |
 |---------|---------|----------|------------|
-| I-01-01 | トップページ実装 | ✅ | `blog/app/page.tsx` |
-| I-01-02 | 記事一覧ページ | 🔄 | `blog/app/articles/` |
-| I-01-03 | 記事詳細ページ | 🔄 | `blog/app/articles/[id]/` |
-| I-01-04 | カテゴリ別一覧ページ | ⬜ | `blog/app/categories/` |
-| I-01-05 | 検索ページ | ⬜ | `blog/app/search/` |
-| I-01-06 | Vercel デプロイ設定 | ✅ | Vercel プロジェクト設定 |
+| I-01-01 | トップページ実装 | ✅ | `blog/app/page.tsx`, `blog/app/p/[current]/page.tsx` |
+| I-01-02 | 記事詳細ページ | ✅ | `blog/app/articles/[slug]/page.tsx` |
+| I-01-03 | カテゴリ別一覧ページ | ✅ | `blog/app/categories/[categoryId]/page.tsx`, `…/p/[current]/page.tsx` |
+| I-01-04 | 検索ページ | ✅ | `blog/app/search/page.tsx`, `blog/app/search/p/[current]/page.tsx` |
+| I-01-05 | 共有コンポーネント（Header/Nav/Footer）| ✅ | `blog/components/` |
+| I-01-06 | Firebase App Hosting デプロイ設定 | ⬜ | `blog/apphosting.yaml`（ファイル作成済み、バックエンド登録は手動） |
 
 ### I-02: app MVP 実装
 

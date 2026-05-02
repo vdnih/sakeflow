@@ -1,0 +1,21 @@
+runConfig:
+  runtime: nodejs20
+
+env:
+  - variable: MICROCMS_SERVICE_DOMAIN
+    secret: MICROCMS_SERVICE_DOMAIN
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: MICROCMS_API_KEY
+    secret: MICROCMS_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: BASE_URL
+    value: https://blog.sakeflow.jp
+    availability:
+      - BUILD
+      - RUNTIME
