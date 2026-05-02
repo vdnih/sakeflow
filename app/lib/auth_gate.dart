@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
-import 'home_screen.dart';
+import 'features/shell/main_shell.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -22,7 +22,7 @@ class AuthGate extends StatelessWidget {
             ],
           );
         }
-        return const HomeScreen();
+        return const MainShell();
       },
     );
   }
