@@ -1,6 +1,6 @@
 # sakeflow 機能レジストリ
 
-> 最終更新: 2026-04-29  
+> 最終更新: 2026-05-02  
 > ステータス: 🟢RELEASED / 🟡IN_PROGRESS / ⚪PLANNED / 🔴BLOCKED
 
 ---
@@ -22,12 +22,12 @@
 
 | 機能 ID | 機能名 | ステータス | 実装ファイル | 備考 |
 |--------|------|---------|-----------|------|
-| B01 | 記事一覧表示 | 🟡 | `blog/app/page.tsx` | microCMS から取得 |
-| B02 | 記事詳細表示 | 🟡 | `blog/app/articles/[id]/` | - |
-| B03 | カテゴリ別一覧 | ⚪ | - | - |
-| B04 | 記事検索 | ⚪ | - | - |
-| B05 | ページネーション | ⚪ | - | - |
-| B06 | OGP / SNS シェア | ⚪ | - | - |
+| B01 | 記事一覧表示 | 🟢 | `blog/app/page.tsx`, `blog/app/p/[current]/page.tsx` | microCMS から取得・ISR |
+| B02 | 記事詳細表示 | 🟢 | `blog/app/articles/[slug]/page.tsx` | ドラフトプレビュー対応 |
+| B03 | カテゴリ別一覧 | 🟢 | `blog/app/categories/[categoryId]/page.tsx`, `blog/app/categories/[categoryId]/p/[current]/page.tsx` | ページネーション込み |
+| B04 | 記事検索 | 🟢 | `blog/app/search/page.tsx`, `blog/app/search/p/[current]/page.tsx` | IME 対応済み |
+| B05 | ページネーション | 🟢 | 全一覧ページに実装済み | `blog/app/p/[current]/` パターン |
+| B06 | OGP / SNS シェア | 🟢 | 各ページの `generateMetadata` | og:image, og:description 設定済み |
 
 ## functions（Cloud Functions）
 

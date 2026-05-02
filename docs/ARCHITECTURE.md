@@ -1,7 +1,7 @@
 # sakeflow モノレポ アーキテクチャ
 
-> バージョン: 1.0  
-> 最終更新: 2026-04-29
+> バージョン: 1.1  
+> 最終更新: 2026-05-02
 
 ---
 
@@ -16,7 +16,8 @@
 ┌───────────────────────┐   ┌─────────────────────────────────┐
 │   sakeflow blog       │   │   sakeflow-log app              │
 │   (Next.js 13)        │   │   (Flutter Web / Mobile)        │
-│   Vercel Hosting      │   │   Firebase Hosting              │
+│   Firebase App        │   │   Firebase Hosting              │
+│   Hosting             │   │                                 │
 └───────────┬───────────┘   └──────────────┬──────────────────┘
             │                              │
             │ microCMS API                 │ Firebase SDK
@@ -51,11 +52,11 @@
 | 項目 | 詳細 |
 |-----|------|
 | フレームワーク | Next.js 13.4（App Router） |
-| ホスティング | Vercel（GitHub 連携自動デプロイ） |
+| ホスティング | Firebase App Hosting（GitHub 連携自動デプロイ） |
 | CMS | microCMS（headless CMS） |
-| データ取得 | サーバーサイドレンダリング（SSG/ISR） |
+| データ取得 | SSG/ISR（記事一覧・詳細）、SSR（検索） |
 | 主な依存 | microcms-js-sdk, cheerio, highlight.js |
-| 環境変数 | `MICROCMS_SERVICE_DOMAIN`, `MICROCMS_API_KEY` |
+| 環境変数 | `MICROCMS_SERVICE_DOMAIN`, `MICROCMS_API_KEY`（Secret Manager） |
 
 詳細: [docs/blog/ARCHITECTURE.md](blog/ARCHITECTURE.md)
 
@@ -91,8 +92,8 @@
 ```
 GitHub main ブランチへの push
          │
-         ├──→ Vercel（blog/）
-         │     └── Next.js ビルド → Vercel CDN
+         ├──→ Firebase App Hosting（blog/）
+         │     └── Next.js ビルド → Firebase インフラ（SSR/ISR/CDN）
          │
          └──→ GitHub Actions（app/ + functions/）
                ├── Flutter web ビルド（app/build/web）
@@ -114,7 +115,7 @@ GitHub main ブランチへの push
 | Firestore | Firebase Auth UID | セキュリティルール（uid ベース） |
 | Storage | Firebase Auth UID | セキュリティルール（uid ベース） |
 | Cloud Functions | Firebase Auth Token / Storage トリガー | 関数内で UID を検証 |
-| microCMS | API Key（環境変数） | Vercel Edge Network 経由 |
+| microCMS | API Key（Secret Manager） | Firebase App Hosting 経由 |
 
 ---
 
