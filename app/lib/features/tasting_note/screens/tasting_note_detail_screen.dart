@@ -428,12 +428,12 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
       children: List.generate(5, (i) {
         final starValue = (i + 1).toDouble();
         final halfValue = i + 0.5;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: () => setState(() => _rating = halfValue),
-              child: Icon(
+        return SizedBox(
+          width: 32,
+          height: 32,
+          child: Stack(
+            children: [
+              Icon(
                 _rating >= starValue
                     ? Icons.star
                     : _rating >= halfValue
@@ -442,8 +442,22 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
                 color: Colors.amber,
                 size: 32,
               ),
-            ),
-          ],
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _rating = halfValue),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _rating = starValue),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       }),
     );
