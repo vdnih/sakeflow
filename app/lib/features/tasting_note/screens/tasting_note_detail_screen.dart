@@ -104,6 +104,7 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('保存しました')),
       );
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
