@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-05-03
+
+### Sakeflow リデザイン適用（UI 全面刷新 + テーマ基盤構築）
+
+- **内容**: Claude Design ハンドオフバンドル `sakeflow-app-proto` をベースに Flutter アプリの UI を全面刷新。同時に `app/lib/core/theme/` を新設し、デザイントークンを単一の真実の源として集約
+- **変更ファイル**:
+  - 新規: `docs/adr/0002-design-system-and-theme-architecture.md` — デザインシステム決定の ADR
+  - 新規: `app/lib/core/theme/app_colors.dart` — カラートークン定数
+  - 新規: `app/lib/core/theme/app_text_styles.dart` — NotoSerifJP 見出しヘルパ
+  - 新規: `app/lib/core/theme/app_theme.dart` — `ThemeData`（`AppTheme.dark`）
+  - 新規: `app/lib/core/widgets/bottle_placeholder.dart` — 銘柄→暗色背景マッピング
+  - 新規: `app/lib/features/shell/widgets/floating_bottom_nav.dart` — フローティングピル + 中央 FAB
+  - 更新: `app/lib/main.dart` — `MaterialApp(theme: AppTheme.dark)` 適用
+  - 更新: `app/lib/features/shell/main_shell.dart` — `FloatingBottomNav` 採用
+  - 更新: `app/lib/features/home/home_tab.dart` — ヒーロー + 統計 3 カード + ノートカード刷新
+  - 更新: `app/lib/features/collection/collection_tab.dart` — Sticky AppBar + フィルターチップ + 2 列グリッド
+  - 更新: `app/lib/features/map/map_tab.dart` — アンバー配色 + インフォカード
+  - 更新: `app/lib/features/record/ai_label_screen.dart` — `CustomPainter` ビューファインダー + 4 ステート UI
+  - 更新: `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart` — 220px ヒーロー + 5 ボタン評価 + 保存フィードバック
+  - 更新: `app/lib/features/analysis/analysis_tab.dart` — 配色のみテーマ追従（機能は別途作業中のためプレースホルダ維持）
+  - 更新: `app/pubspec.yaml` — `google_fonts: ^6.0.0` 追加
+  - 更新: `docs/app/SOFTWARE_ARCHITECTURE.md`（v1.1 → v1.2） — ディレクトリ構成更新 + デザインシステムセクション追加
+  - 更新: `docs/feature_registry.md` — 各機能の備考列に「2026-05-03 リデザイン適用」を追記、F12 デザインシステムを新規追加
+  - 削除: `app/lib/home_screen.dart` — 旧デザインの dead code
+  - 削除: `app/lib/ai_label_screen.dart` — 旧デザインの dead code（新版は `features/record/` 配下）
+  - 削除: `app/lib/auth_gate.dart` — `main.dart` から参照されていなかった重複実装
+- **理由**: Phase 1 実装が機能優先で進められた結果、`Colors.deepPurple` 等のハードコードカラーが 8 ファイル以上に分散し、ブランドカラー変更時に全画面の編集が必要な状態だった。また Material デフォルトテーマ + オレンジ FAB の組み合わせは「お酒と旅」のブランド世界観を表現できていなかったため、デザインを刷新するとともにデザイントークンの集約アーキテクチャを確立した
+- **決定事項**:
+  - **デザイントークンの単一の真実の源** — 全色・タイポを `app/lib/core/theme/` に集約し、Widget からの直書きを禁止（詳細: ADR-0002）
+  - **ダーク単一テーマ** — `themeMode: ThemeMode.dark` で固定。ライトテーマは将来オプション
+  - **アンバーアクセント `#D4922A`** — 琥珀色を連想させる暖色をブランドカラーに採用
+  - **見出しは Noto Serif JP** — `google_fonts` 経由で実行時取得
+  - **フローティングボトムナビ** — 標準 `BottomNavigationBar` を廃止し、ピル型 + 中央 FAB のカスタム実装に統一
+  - 本作業は redesign 本体（PR `claude/implement-sakeflow-redesign-UwblT`）とドキュメント更新（PR `claude/docs-sakeflow-redesign`）に分割し、レビューしやすくした
+
+---
+
 ## 2026-05-02
 
 ### テイスティングノート・コレクション機能の実装
