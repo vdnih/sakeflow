@@ -4,6 +4,7 @@ import '../map/map_tab.dart';
 import '../analysis/analysis_tab.dart';
 import '../collection/collection_tab.dart';
 import '../record/ai_label_screen.dart';
+import 'widgets/floating_bottom_nav.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -22,12 +23,6 @@ class _MainShellState extends State<MainShell> {
     const CollectionTab(),
   ];
 
-  void _onTabTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,48 +30,13 @@ class _MainShellState extends State<MainShell> {
         index: _selectedIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: FloatingBottomNav(
         currentIndex: _selectedIndex,
-        onTap: _onTabTapped,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'ホーム',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: 'マップ',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
-            label: '分析',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.collections_bookmark_outlined),
-            activeIcon: Icon(Icons.collections_bookmark),
-            label: 'コレクション',
-          ),
-        ],
+        onTabChanged: (i) => setState(() => _selectedIndex = i),
+        onFabTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AiLabelScreen()),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AiLabelScreen()),
-          );
-        },
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-        tooltip: 'お酒を記録する',
-        child: const Icon(Icons.camera_alt),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
