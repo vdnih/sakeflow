@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/bottle_placeholder.dart';
 import 'models/sake.dart';
 import 'repositories/sake_repository.dart';
+import '../tasting_note/models/tasting_note.dart';
+import '../tasting_note/repositories/tasting_note_repository.dart';
 
-class CollectionTab extends StatelessWidget {
+class CollectionTab extends StatefulWidget {
   const CollectionTab({super.key});
+
+  @override
+  State<CollectionTab> createState() => _CollectionTabState();
+}
+
+class _CollectionTabState extends State<CollectionTab> {
+  String _selectedCategory = 'すべて';
 
   @override
   Widget build(BuildContext context) {
@@ -12,60 +24,160 @@ class CollectionTab extends StatelessWidget {
     if (user == null) return const SizedBox.shrink();
 
     final sakeRepo = SakeRepository();
+    final noteRepo = TastingNoteRepository();
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('コレクション'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      backgroundColor: kBgBase,
+      body: StreamBuilder<List<TastingNote>>(
+        stream: noteRepo.listNotes(user.uid),
+        builder: (context, notesSnap) {
+          final notes = notesSnap.data ?? [];
+          final categories = [
+            'すべて',
+            ...{
+              ...notes
+                  .map((n) => n.category)
+                  .where((c) => c.isNotEmpty)
+            }
+          ];
+
+          return StreamBuilder<List<Sake>>(
+            stream: sakeRepo.listSakes(user.uid),
+            builder: (context, sakesSnap) {
+              if (!sakesSnap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final allSakes = sakesSnap.data!;
+              final filtered = _selectedCategory == 'すべて'
+                  ? allSakes
+                  : () {
+                      final brands = notes
+                          .where((n) => n.category == _selectedCategory)
+                          .map((n) => n.brand)
+                          .toSet();
+                      return allSakes
+                          .where((s) => brands.contains(s.brand))
+                          .toList();
+                    }();
+
+              return _buildContent(
+                  context, categories, filtered, allSakes.isEmpty);
+            },
+          );
+        },
       ),
-      body: StreamBuilder<List<Sake>>(
-        stream: sakeRepo.listSakes(user.uid),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('エラー: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final sakes = snapshot.data!;
-          if (sakes.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.collections_bookmark,
-                      size: 72, color: Color(0xFFCFD8DC)),
-                  SizedBox(height: 16),
-                  Text(
-                    'コレクション',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'まだコレクションがありません',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'お酒を記録するとここに表示されます',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    List<String> categories,
+    List<Sake> sakes,
+    bool allEmpty,
+  ) {
+    final top = MediaQuery.of(context).padding.top;
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          pinned: true,
+          automaticallyImplyLeading: false,
+          backgroundColor: kSurface1,
+          expandedHeight: top + 88,
+          collapsedHeight: 60,
+          flexibleSpace: FlexibleSpaceBar(
+            titlePadding:
+                const EdgeInsets.only(left: 20, bottom: 16),
+            expandedTitleScale: 1.0,
+            title: Text('コレクション', style: AppTextStyles.headingLarge()),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _FilterChipsRow(
+            categories: categories,
+            selected: _selectedCategory,
+            onChanged: (c) => setState(() => _selectedCategory = c),
+          ),
+        ),
+        if (allEmpty)
+          SliverFillRemaining(child: _EmptyCollectionState())
+        else if (sakes.isEmpty)
+          SliverFillRemaining(
+            child: Center(
+              child: Text(
+                'このカテゴリの記録はありません',
+                style: const TextStyle(color: kTextSub, fontSize: 14),
               ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: sakes.length,
-            itemBuilder: (context, index) =>
-                _SakeCard(sake: sakes[index]),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.72,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) => _SakeCard(sake: sakes[i]),
+                childCount: sakes.length,
+              ),
+            ),
+          ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+      ],
+    );
+  }
+}
+
+class _FilterChipsRow extends StatelessWidget {
+  final List<String> categories;
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _FilterChipsRow({
+    required this.categories,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final cat = categories[i];
+          final isSelected = cat == selected;
+          return GestureDetector(
+            onTap: () => onChanged(cat),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? kAccentMain : kSurface2,
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                  color: isSelected ? kAccentMain : kBorderDefault,
+                ),
+              ),
+              child: Text(
+                cat,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.black : kTextSub,
+                ),
+              ),
+            ),
           );
         },
       ),
@@ -73,135 +185,158 @@ class CollectionTab extends StatelessWidget {
   }
 }
 
-class _SakeCard extends StatelessWidget {
+class _EmptyCollectionState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.liquor_outlined, size: 72, color: kTextMuted),
+          const SizedBox(height: 16),
+          Text('コレクション', style: AppTextStyles.headingMedium()),
+          const SizedBox(height: 8),
+          const Text(
+            'まだコレクションがありません',
+            style: TextStyle(color: kTextSub, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'お酒を記録するとここに表示されます',
+            style: TextStyle(color: kTextMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SakeCard extends StatefulWidget {
   final Sake sake;
 
   const _SakeCard({required this.sake});
 
   @override
+  State<_SakeCard> createState() => _SakeCardState();
+}
+
+class _SakeCardState extends State<_SakeCard> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 10),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+    final sake = widget.sake;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: _hovered
+            ? (Matrix4.identity()..translate(0.0, -2.0))
+            : Matrix4.identity(),
+        decoration: BoxDecoration(
+          color: kSurface2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: _hovered ? kBorderHover : kBorderDefault),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: sake.imageUrl.isNotEmpty
-                  ? Image.network(
-                      sake.imageUrl,
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
-                  : _placeholder(),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    sake.brand,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (sake.brewery.isNotEmpty)
-                    Text(
-                      sake.brewery,
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  if (sake.prefecture.isNotEmpty)
-                    Row(
-                      children: [
-                        Icon(Icons.location_on,
-                            size: 12, color: Colors.grey[500]),
-                        Text(
-                          sake.prefecture,
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey[500]),
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _StatChip(
-                        icon: Icons.local_bar,
-                        label: '${sake.tastingCount}回',
-                        color: Colors.deepPurple,
-                      ),
-                      const SizedBox(width: 8),
-                      if (sake.avgRating != null)
-                        _StatChip(
-                          icon: Icons.star,
-                          label: sake.avgRating!.toStringAsFixed(1),
-                          color: Colors.amber,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _buildImageArea(sake),
+            _buildInfoArea(sake),
           ],
         ),
       ),
     );
   }
 
-  Widget _placeholder() {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Icon(Icons.liquor_outlined, color: Colors.grey),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _StatChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildImageArea(Sake sake) {
+    return SizedBox(
+      height: 110,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 12, color: color, fontWeight: FontWeight.w600),
+          sake.imageUrl.isNotEmpty
+              ? Image.network(sake.imageUrl, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      BottlePlaceholder(
+                        brand: sake.brand,
+                        width: double.infinity,
+                        height: 110,
+                        borderRadius: 0,
+                      ))
+              : BottlePlaceholder(
+                  brand: sake.brand,
+                  width: double.infinity,
+                  height: 110,
+                  borderRadius: 0,
+                ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: kAccentSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '×${sake.tastingCount}回',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: kAccentMain,
+                ),
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoArea(Sake sake) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              sake.brand,
+              style: AppTextStyles.headingSmall(),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              [
+                if (sake.prefecture.isNotEmpty) sake.prefecture,
+                if (sake.brewery.isNotEmpty) sake.brewery,
+              ].join(' · '),
+              style: const TextStyle(fontSize: 10, color: kTextSub),
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (sake.avgRating != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (i) {
+                  final full = i + 1 <= sake.avgRating!;
+                  return Icon(
+                    full ? Icons.star : Icons.star_border,
+                    size: 11,
+                    color: kAccentMain,
+                  );
+                }),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

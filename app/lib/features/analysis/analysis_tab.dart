@@ -1,36 +1,35 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
 
 class AnalysisTab extends StatelessWidget {
   const AnalysisTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('分析'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: const Center(
+      backgroundColor: kBgBase,
+      body: Padding(
+        padding: EdgeInsets.only(top: top + 20, left: 20, right: 20),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.bar_chart, size: 72, color: Color(0xFFCFD8DC)),
-            SizedBox(height: 16),
-            Text(
-              'テイスト分析',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
+            Text('分析', style: AppTextStyles.headingLarge()),
+            const Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bar_chart, size: 72, color: kTextMuted),
+                    SizedBox(height: 16),
+                    Text(
+                      '近日公開予定',
+                      style: TextStyle(color: kTextSub, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '近日公開予定',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],
         ),

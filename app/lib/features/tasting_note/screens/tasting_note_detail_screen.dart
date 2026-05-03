@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/tasting_note.dart';
 import '../repositories/tasting_note_repository.dart';
 import '../../collection/repositories/sake_repository.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/bottle_placeholder.dart';
 
 class TastingNoteDetailScreen extends StatefulWidget {
   final String userId;
@@ -18,7 +21,8 @@ class TastingNoteDetailScreen extends StatefulWidget {
       _TastingNoteDetailScreenState();
 }
 
-class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
+class _TastingNoteDetailScreenState
+    extends State<TastingNoteDetailScreen> {
   final _noteRepo = TastingNoteRepository();
   final _sakeRepo = SakeRepository();
   final _formKey = GlobalKey<FormState>();
@@ -31,6 +35,8 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
   double _rating = 0;
   bool _drankLocally = false;
   bool _saving = false;
+  bool _saved = false;
+  bool _formInitialized = false;
 
   @override
   void initState() {
@@ -50,8 +56,6 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
     super.dispose();
   }
 
-  bool _formInitialized = false;
-
   void _populateForm(TastingNote note) {
     if (!_formInitialized && note.brand.isNotEmpty) {
       _brandCtrl.text = note.brand;
@@ -70,8 +74,6 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
     setState(() => _saving = true);
     try {
       final batch = <Future>[];
-
-      // tasting_note を更新
       batch.add(_noteRepo.updateEditableFields(
         userId: widget.userId,
         noteId: widget.noteId,
@@ -80,11 +82,12 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
         prefecture: _prefectureCtrl.text.trim(),
         tags: _tags,
         rating: _rating > 0 ? _rating : null,
-        note: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+        note: _noteCtrl.text.trim().isNotEmpty
+            ? _noteCtrl.text.trim()
+            : null,
         drankLocally: _drankLocally,
       ));
 
-      // sake も同期（銘柄名が変わっていれば sake 側も更新）
       if (current.sakeId != null &&
           (current.brand != _brandCtrl.text.trim() ||
               current.brewery != _breweryCtrl.text.trim() ||
@@ -101,11 +104,15 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
       await Future.wait(batch);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存しました')),
-      );
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-    } finally {
+      setState(() {
+        _saving = false;
+        _saved = true;
+      });
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/home', (route) => false);
+    } catch (_) {
       if (mounted) setState(() => _saving = false);
     }
   }
@@ -113,16 +120,14 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('テイスティングノート'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: kBgBase,
       body: StreamBuilder<TastingNote>(
         stream: _noteRepo.watchNote(widget.userId, widget.noteId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('エラー: ${snapshot.error}'));
+            return Center(
+                child: Text('エラー: ${snapshot.error}',
+                    style: const TextStyle(color: kTextSub)));
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -134,7 +139,7 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
             return _buildProcessingView(note);
           }
           if (note.status == TastingNoteStatus.failed) {
-            return _buildFailedView();
+            return _buildFailedView(note);
           }
           return _buildReadyView(note);
         },
@@ -143,163 +148,303 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
   }
 
   Widget _buildProcessingView(TastingNote note) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          if (note.imageUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(note.imageUrl, height: 200, fit: BoxFit.cover),
+    return Stack(
+      children: [
+        _buildHero(note),
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8,
+          left: 16,
+          child: _buildBackButton(),
+        ),
+        Positioned.fill(
+          top: 220,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: kAccentMain),
+                const SizedBox(height: 20),
+                Text('AIが解析中です…',
+                    style: AppTextStyles.headingSmall()),
+                const SizedBox(height: 8),
+                const Text(
+                  '解析完了後に評価やメモを入力できます',
+                  style: TextStyle(fontSize: 13, color: kTextSub),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: kSurface2,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: kBorderDefault),
+                    ),
+                    child: const Text(
+                      'ホームに戻る',
+                      style:
+                          TextStyle(fontSize: 13, color: kTextSub),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          const SizedBox(height: 32),
-          const CircularProgressIndicator(color: Colors.deepPurple),
-          const SizedBox(height: 16),
-          const Text(
-            'AIが解析中です...',
-            style: TextStyle(fontSize: 16, color: Colors.deepPurple),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '解析完了後に評価やメモを入力できます',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ホームに戻る（後から編集できます）'),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildFailedView() {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.red),
-          SizedBox(height: 12),
-          Text('AI解析に失敗しました', style: TextStyle(color: Colors.red)),
-          SizedBox(height: 8),
-          Text('手動で銘柄情報を入力してください',
-              style: TextStyle(color: Colors.grey, fontSize: 13)),
-        ],
-      ),
-    );
+  Widget _buildFailedView(TastingNote note) {
+    return _buildReadyView(note);
   }
 
   Widget _buildReadyView(TastingNote note) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (note.imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  note.imageUrl,
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            const SizedBox(height: 16),
-            Text(
-              '${note.drankAt.year}/${note.drankAt.month.toString().padLeft(2, '0')}/${note.drankAt.day.toString().padLeft(2, '0')}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            _buildSectionLabel('銘柄情報'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _brandCtrl,
-              decoration: const InputDecoration(
-                labelText: '銘柄名',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? '銘柄名を入力してください' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _breweryCtrl,
-              decoration: const InputDecoration(
-                labelText: '蔵元',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _prefectureCtrl,
-              decoration: const InputDecoration(
-                labelText: '都道府県',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildDrankLocallyCheckbox(),
-            const SizedBox(height: 16),
-            _buildSectionLabel('タグ'),
-            const SizedBox(height: 8),
-            _buildTagsEditor(),
-            const SizedBox(height: 16),
-            _buildSectionLabel('評価'),
-            const SizedBox(height: 8),
-            _buildRatingSelector(),
-            const SizedBox(height: 16),
-            _buildSectionLabel('メモ（任意）'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _noteCtrl,
-              decoration: const InputDecoration(
-                hintText: '感想・テイスティングメモ',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 4,
-              maxLength: 1000,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saving ? null : () => _save(note),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHero(note),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (note.tags.isNotEmpty) _buildTagsDisplay(note),
+                      if (note.tags.isNotEmpty)
+                        const SizedBox(height: 20),
+                      _buildSectionCard(
+                        title: '銘柄情報',
+                        child: Column(
+                          children: [
+                            _buildTextField(_brandCtrl, '銘柄名',
+                                required: true),
+                            const SizedBox(height: 10),
+                            _buildTextField(_breweryCtrl, '蔵元'),
+                            const SizedBox(height: 10),
+                            _buildTextField(
+                              _prefectureCtrl,
+                              '都道府県',
+                              prefix: const Icon(Icons.location_on,
+                                  size: 16, color: kTextMuted),
+                            ),
+                          ],
                         ),
-                      )
-                    : const Text('保存する', style: TextStyle(fontSize: 16)),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSectionCard(
+                        title: 'タグ',
+                        child: _buildTagsEditor(),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSectionCard(
+                        title: '評価',
+                        child: _buildRatingSelector(),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSectionCard(
+                        title: 'メモ（任意）',
+                        child: _buildNoteField(),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDrankLocallyToggle(),
+                      const SizedBox(height: 24),
+                      _buildSaveButton(note),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8,
+          left: 16,
+          child: _buildBackButton(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHero(TastingNote note) {
+    return SizedBox(
+      height: 220,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          note.imageUrl.isNotEmpty
+              ? Image.network(
+                  note.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: bottleColor(note.brand),
+                    child: const Center(
+                      child: Icon(Icons.liquor_outlined,
+                          size: 64, color: kTextMuted),
+                    ),
+                  ),
+                )
+              : Container(
+                  color: bottleColor(note.brand),
+                  child: const Center(
+                    child: Icon(Icons.liquor_outlined,
+                        size: 64, color: kTextMuted),
+                  ),
+                ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Color(0xE6000000)],
+                stops: [0.5, 1.0],
               ),
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (note.category.isNotEmpty || note.prefecture.isNotEmpty)
+                  Text(
+                    [
+                      if (note.category.isNotEmpty) note.category,
+                      if (note.prefecture.isNotEmpty) note.prefecture,
+                    ].join(' · '),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: kAccentMain,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  note.brand.isNotEmpty ? note.brand : '解析中...',
+                  style: AppTextStyles.headingLarge(color: Colors.white),
+                ),
+                if (note.brewery.isNotEmpty)
+                  Text(
+                    note.brewery,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0x99FFFFFF)),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionLabel(String label) {
-    return Text(
-      label,
+  Widget _buildBackButton() {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.5),
+          shape: BoxShape.circle,
+          border: Border.all(color: kBorderDefault),
+        ),
+        child: const Icon(Icons.arrow_back_ios_new,
+            color: Colors.white, size: 16),
+      ),
+    );
+  }
+
+  Widget _buildTagsDisplay(TastingNote note) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: note.tags
+          .map((tag) => Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: kAccentSoft,
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: kAccentGlow),
+                ),
+                child: Text(
+                  tag,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: kAccentMain,
+                  ),
+                ),
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _buildSectionCard(
+      {required String title, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurface2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorderDefault),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: kTextMuted,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.66)),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String label, {
+    bool required = false,
+    Widget? prefix,
+  }) {
+    return TextFormField(
+      controller: ctrl,
+      style: const TextStyle(color: kTextPrimary, fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: prefix,
+      ),
+      validator: required
+          ? (v) => (v == null || v.trim().isEmpty) ? '$labelを入力してください' : null
+          : null,
+    );
+  }
+
+  Widget _buildNoteField() {
+    return TextFormField(
+      controller: _noteCtrl,
       style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-        color: Colors.deepPurple,
+          color: kTextPrimary, fontSize: 13, height: 1.7),
+      maxLines: 4,
+      maxLength: 1000,
+      decoration: const InputDecoration(
+        hintText: '感想・テイスティングメモ',
+        counterStyle: TextStyle(color: kTextMuted, fontSize: 10),
       ),
     );
   }
@@ -311,50 +456,61 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: _tags.map((tag) {
-                return Chip(
-                  label: Text(tag, style: const TextStyle(fontSize: 12)),
-                  backgroundColor: Colors.deepPurple[50],
-                  deleteIcon: const Icon(Icons.close, size: 14),
-                  onDeleted: () {
-                    setState(() => _tags.remove(tag));
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 8),
+            if (_tags.isNotEmpty)
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: _tags
+                    .map((tag) => Chip(
+                          label: Text(tag),
+                          deleteIcon:
+                              const Icon(Icons.close, size: 14),
+                          onDeleted: () {
+                            setState(() => _tags.remove(tag));
+                          },
+                        ))
+                    .toList(),
+              ),
+            if (_tags.isNotEmpty) const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: tagCtrl,
+                    style: const TextStyle(
+                        color: kTextPrimary, fontSize: 13),
                     decoration: const InputDecoration(
                       hintText: 'タグを追加（例: 純米大吟醸）',
-                      border: OutlineInputBorder(),
                       isDense: true,
                     ),
                     onSubmitted: (v) {
-                      final trimmed = v.trim();
-                      if (trimmed.isNotEmpty && !_tags.contains(trimmed)) {
-                        setState(() => _tags.add(trimmed));
+                      final t = v.trim();
+                      if (t.isNotEmpty && !_tags.contains(t)) {
+                        setState(() => _tags.add(t));
                         tagCtrl.clear();
                       }
                     },
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.add, color: Colors.deepPurple),
-                  onPressed: () {
-                    final trimmed = tagCtrl.text.trim();
-                    if (trimmed.isNotEmpty && !_tags.contains(trimmed)) {
-                      setState(() => _tags.add(trimmed));
+                GestureDetector(
+                  onTap: () {
+                    final t = tagCtrl.text.trim();
+                    if (t.isNotEmpty && !_tags.contains(t)) {
+                      setState(() => _tags.add(t));
                       tagCtrl.clear();
                     }
                   },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: kAccentSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add,
+                        color: kAccentMain, size: 18),
+                  ),
                 ),
               ],
             ),
@@ -364,29 +520,77 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
     );
   }
 
-  Widget _buildDrankLocallyCheckbox() {
+  Widget _buildRatingSelector() {
+    return Row(
+      children: List.generate(5, (i) {
+        final value = (i + 1).toDouble();
+        final selected = _rating >= value;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(left: i == 0 ? 0 : 6),
+            child: GestureDetector(
+              onTap: () => setState(() => _rating = value),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                height: 36,
+                decoration: BoxDecoration(
+                  color: selected ? kAccentMain : kSurface3,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Icon(
+                    selected ? Icons.star : Icons.star_border,
+                    size: 16,
+                    color: selected ? Colors.black : kTextMuted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDrankLocallyToggle() {
     return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade400),
-        borderRadius: BorderRadius.circular(4),
+        color: kSurface2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorderDefault),
       ),
-      child: CheckboxListTile(
-        value: _drankLocally,
-        controlAffinity: ListTileControlAffinity.leading,
-        activeColor: Colors.deepPurple,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        title: const Text('現地で飲んだ'),
-        subtitle: const Text(
-          '産地の都道府県で飲んだ場合にチェック',
-          style: TextStyle(fontSize: 11),
-        ),
-        onChanged: (value) async {
-          if (value == true) {
-            await _confirmDrankLocally();
-          } else {
-            setState(() => _drankLocally = false);
-          }
-        },
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('現地で飲んだ',
+                    style: AppTextStyles.headingSmall()),
+                const SizedBox(height: 2),
+                const Text(
+                  '産地の都道府県で飲んだ場合にオン',
+                  style: TextStyle(fontSize: 11, color: kTextSub),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _drankLocally,
+            activeColor: Colors.white,
+            activeTrackColor: kAccentMain,
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: kSurface3,
+            onChanged: (v) async {
+              if (v) {
+                await _confirmDrankLocally();
+              } else {
+                setState(() => _drankLocally = false);
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -396,71 +600,76 @@ class _TastingNoteDetailScreenState extends State<TastingNoteDetailScreen> {
     final brand = _brandCtrl.text.trim();
     if (pref.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('先に都道府県を入力してください')),
+        const SnackBar(
+            content: Text('先に都道府県を入力してください'),
+            backgroundColor: kSurface2),
       );
       return;
     }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('現地で飲んだ記録'),
+        backgroundColor: kSurface2,
+        title: Text('現地で飲んだ記録',
+            style: AppTextStyles.headingSmall()),
         content: Text(
           '${brand.isNotEmpty ? brand : 'このお酒'}は$prefのお酒です。\n$prefでこのお酒を飲んだ記録をしますか？',
+          style: const TextStyle(color: kTextSub, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('いいえ'),
+            child: const Text('いいえ',
+                style: TextStyle(color: kTextSub)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('はい'),
+            child: const Text('はい',
+                style: TextStyle(color: kAccentMain)),
           ),
         ],
       ),
     );
-    if (ok == true) {
-      setState(() => _drankLocally = true);
-    }
+    if (ok == true) setState(() => _drankLocally = true);
   }
 
-  Widget _buildRatingSelector() {
-    return Row(
-      children: List.generate(5, (i) {
-        final starValue = (i + 1).toDouble();
-        final halfValue = i + 0.5;
-        return SizedBox(
-          width: 32,
-          height: 32,
-          child: Stack(
-            children: [
-              Icon(
-                _rating >= starValue
-                    ? Icons.star
-                    : _rating >= halfValue
-                        ? Icons.star_half
-                        : Icons.star_border,
-                color: Colors.amber,
-                size: 32,
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _rating = halfValue),
+  Widget _buildSaveButton(TastingNote note) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: _saved ? kAccentSoft : kAccentMain,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: (_saving || _saved) ? null : () => _save(note),
+            child: Center(
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black),
+                    )
+                  : Text(
+                      _saved ? '✓ 保存しました' : '保存する',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: _saved ? kAccentMain : Colors.black,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _rating = starValue),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }
