@@ -37,3 +37,23 @@ sakeflow/
 - **.github/workflows/**: GitHub Actionsのワークフロー定義（Firebaseデプロイ用）。
 - **firebase.json**: Firebase HostingやFunctionsの設定ファイル。
 - **.firebaserc**: Firebaseプロジェクトの接続情報。
+- **cors.json**: Firebase Storage バケットの CORS 設定。
+
+## Firebase Storage の CORS 設定
+
+Flutter Web (CanvasKit) から `Image.network` で Storage 上の画像を取得する際、ブラウザは XHR + Range リクエストを送るため、バケット側に CORS 設定が必要です。
+バケットに CORS 設定が無いと `Access-Control-Allow-Origin` エラーで画像表示が失敗します。
+
+`cors.json` を変更した際は、以下のコマンドで Storage バケットに反映してください。
+
+```bash
+gcloud storage buckets update gs://sakeflow.firebasestorage.app --cors-file=cors.json
+# もしくは
+gsutil cors set cors.json gs://sakeflow.firebasestorage.app
+```
+
+設定確認:
+
+```bash
+gcloud storage buckets describe gs://sakeflow.firebasestorage.app --format="default(cors_config)"
+```
