@@ -7,7 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onRequest} from "firebase-functions/v2/https";
+import {onRequest, onCall, HttpsError} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import {onObjectFinalized} from "firebase-functions/v2/storage";
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
@@ -154,6 +154,141 @@ export const onImageUploaded = onObjectFinalized(
         updated_at: new Date(),
       });
     }
+  }
+);
+
+export const analyzeTaste = onCall(
+  {secrets: [openAiKey]},
+  async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) {
+      throw new HttpsError("unauthenticated", "ログインが必要です");
+    }
+
+    const firestore = getFirestore();
+    const sakesCol = firestore
+      .collection("users")
+      .doc(userId)
+      .collection("sakes");
+
+    const [byCountSnap, byRatingSnap] = await Promise.all([
+      sakesCol.orderBy("tasting_count", "desc").limit(10).get(),
+      sakesCol
+        .where("avg_rating", ">", 0)
+        .orderBy("avg_rating", "desc")
+        .limit(10)
+        .get(),
+    ]);
+
+    const topByCount = byCountSnap.docs.map((d) => {
+      const x = d.data();
+      return {
+        brand: x.brand ?? "",
+        brewery: x.brewery ?? "",
+        prefecture: x.prefecture ?? "",
+        tasting_count: x.tasting_count ?? 0,
+        avg_rating: x.avg_rating ?? null,
+      };
+    });
+    const topByRating = byRatingSnap.docs.map((d) => {
+      const x = d.data();
+      return {
+        brand: x.brand ?? "",
+        brewery: x.brewery ?? "",
+        prefecture: x.prefecture ?? "",
+        avg_rating: x.avg_rating ?? 0,
+        tasting_count: x.tasting_count ?? 0,
+      };
+    });
+
+    if (topByCount.length === 0 && topByRating.length === 0) {
+      throw new HttpsError(
+        "failed-precondition",
+        "分析するための飲酒記録がまだありません"
+      );
+    }
+
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    const useRealAI = process.env.USE_REAL_AI === "true";
+
+    if (isEmulator && !useRealAI) {
+      return {
+        tendency:
+          "（モック）フルーティで香り高い純米大吟醸系を好む傾向があります。" +
+          "新潟・山形など東日本の蔵元が多めです。",
+        suggestions: [
+          {
+            brand: "而今",
+            reason: "華やかな香りとジューシーな旨みでお好みに合いそうです",
+            category_or_style: "純米吟醸",
+          },
+          {
+            brand: "鳳凰美田",
+            reason: "フルーティ系の代表格、上位銘柄と方向性が近い",
+            category_or_style: "純米大吟醸",
+          },
+          {
+            brand: "風の森",
+            reason: "微発泡感とフレッシュさで新しい体験になりそう",
+            category_or_style: "純米しぼり華",
+          },
+        ],
+      };
+    }
+
+    const openai = new OpenAI({
+      apiKey: isEmulator ? process.env.OPENAI_API_KEY : openAiKey.value(),
+    });
+
+    const userPrompt =
+      "あなたは日本酒に詳しいソムリエです。" +
+      "ユーザーの飲酒履歴ランキングから好みの傾向を読み取り、" +
+      "次に飲むと喜びそうな日本酒を3〜5件提案してください。" +
+      "ランキング:\n" +
+      JSON.stringify({topByCount, topByRating}, null, 2);
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5.4-mini",
+      messages: [{role: "user", content: userPrompt}],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "taste_analysis",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              tendency: {
+                type: "string",
+                description: "ユーザーの好みの傾向を日本語で2-3文",
+              },
+              suggestions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    brand: {type: "string", description: "推薦銘柄名"},
+                    reason: {type: "string", description: "推薦理由（日本語）"},
+                    category_or_style: {
+                      type: "string",
+                      description: "特定名称や系統（純米大吟醸 / 生酛 等）",
+                    },
+                  },
+                  required: ["brand", "reason", "category_or_style"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["tendency", "suggestions"],
+            additionalProperties: false,
+          },
+        },
+      },
+      max_completion_tokens: 1024,
+    });
+
+    const raw = response.choices[0].message?.content ?? "{}";
+    return JSON.parse(raw);
   }
 );
 

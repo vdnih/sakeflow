@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-04
+
+### テイスト分析 MVP 実装（デザインシステム準拠）
+
+- **内容**: 飲酒記録のランキング可視化とAIによる傾向分析・銘柄推薦の MVP を実装。「まずは動くものを作ってブラッシュアップ」する方針のもと、既存の `users/{uid}/sakes` の `tasting_count` / `avg_rating` フィールドをそのまま活用し、追加データモデルなしで構築。全 UI は 2026-05-03 に導入したデザインシステム（`core/theme/`）に準拠
+- **変更ファイル**:
+  - 新規: `app/lib/features/analysis/repositories/analysis_repository.dart` — ランキングクエリ
+  - 新規: `app/lib/features/analysis/screens/taste_dashboard_screen.dart` — 「よく飲む」「高評価」2タブのダッシュボード（`kBgBase` / `kAccentMain` で配色）
+  - 新規: `app/lib/features/analysis/services/taste_analysis_service.dart` — Cloud Functions onCall ラッパ
+  - 新規: `app/lib/features/analysis/screens/ai_suggestion_screen.dart` — 傾向コメント + 推薦銘柄表示
+  - 更新: `app/lib/features/analysis/analysis_tab.dart` — プレースホルダ → ダッシュボードに差し替え
+  - 更新: `app/lib/emulator_config.dart` — `FirebaseFunctions.instance.useFunctionsEmulator` を追加（CORS 修正）
+  - 更新: `app/pubspec.yaml` — `cloud_functions: ^5.6.2` を追加
+  - 更新: `functions/src/index.ts` — `analyzeTaste` (onCall) を追加。OpenAI Structured Outputs で傾向＋推薦をJSON返却
+  - 更新: `docs/feature_registry.md` — F02 / F10 / CF04 を 🟡IN_PROGRESS に
+- **理由**: ユーザーが日本酒の好み傾向を把握し、次に飲む銘柄選びを楽にする機能の足場を作るため
+- **決定事項**:
+  - **MVP は1画面集約** — 「よく飲む」「高評価」タブ + AI分析FABの最小構成。グラフ可視化やタグ別分析は後続で拡張
+  - **新規Firestoreスキーマなし** — 既存集計フィールドをそのまま利用しコスト・複雑性を抑制
+  - **AI 呼び出しは onCall** — 既存 `onImageUploaded` の OpenAI / Structured Outputs パターンを踏襲。エミュレータではモック応答を返すフラグ動作も同じ
+  - **デザインシステム準拠** — conflict 解消時に全 Widget を `core/theme/` のトークン（`kBgBase`, `kAccentMain`, `AppTextStyles` 等）に統一
+  - **モデルはデフォルトリージョン (us-central1)** — 既存関数と統一
+
+---
+
 ## 2026-05-03
 
 ### Sakeflow リデザイン適用（UI 全面刷新 + テーマ基盤構築）
@@ -23,7 +48,6 @@
   - 更新: `app/lib/features/map/map_tab.dart` — アンバー配色 + インフォカード
   - 更新: `app/lib/features/record/ai_label_screen.dart` — `CustomPainter` ビューファインダー + 4 ステート UI
   - 更新: `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart` — 220px ヒーロー + 5 ボタン評価 + 保存フィードバック
-  - 更新: `app/lib/features/analysis/analysis_tab.dart` — 配色のみテーマ追従（機能は別途作業中のためプレースホルダ維持）
   - 更新: `app/pubspec.yaml` — `google_fonts: ^6.0.0` 追加
   - 更新: `docs/app/SOFTWARE_ARCHITECTURE.md`（v1.1 → v1.2） — ディレクトリ構成更新 + デザインシステムセクション追加
   - 更新: `docs/feature_registry.md` — 各機能の備考列に「2026-05-03 リデザイン適用」を追記、F12 デザインシステムを新規追加
