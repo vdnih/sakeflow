@@ -14,7 +14,7 @@ class AppTheme {
           error: Color(0xFFFF6B6B),
           onError: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: kSurface2,
           elevation: 0,
           margin: EdgeInsets.zero,
