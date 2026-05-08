@@ -1,30 +1,49 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:sakeflow_log/main.dart';
+import 'package:sakeflow_log/core/widgets/bottle_placeholder.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('BottlePlaceholder', () {
+    testWidgets('renders without error', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: BottlePlaceholder(brand: '獺祭', width: 80, height: 120),
+          ),
+        ),
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      expect(find.byType(BottlePlaceholder), findsOneWidget);
+      expect(find.byIcon(Icons.liquor_outlined), findsOneWidget);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    testWidgets('borderRadius デフォルト値（10）が適用される', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: BottlePlaceholder(brand: 'テスト', width: 60, height: 90),
+          ),
+        ),
+      );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      final container = tester.widget<Container>(find.byType(Container).first);
+      final decoration = container.decoration as BoxDecoration;
+      expect(decoration.borderRadius, BorderRadius.circular(10));
+    });
+  });
+
+  group('bottleColor', () {
+    test('獺祭 → 専用カラー', () {
+      expect(bottleColor('獺祭'), const Color(0xFF3D2B1F));
+    });
+
+    test('久保田 → 専用カラー', () {
+      expect(bottleColor('久保田 千寿'), const Color(0xFF1F2D3D));
+    });
+
+    test('未登録銘柄 → デフォルトカラー（kSurface2）', () {
+      final color = bottleColor('不明な銘柄');
+      expect(color, isA<Color>());
+    });
   });
 }
