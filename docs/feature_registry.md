@@ -1,6 +1,6 @@
 # sakeflow 機能レジストリ
 
-> 最終更新: 2026-05-04（UI リデザイン適用 + テイスト分析 MVP 着手）  
+> 最終更新: 2026-05-08（Firebase AI Logic 移行 + Cloud Functions 削除）  
 > ステータス: 🟢RELEASED / 🟡IN_PROGRESS / ⚪PLANNED / 🔴BLOCKED
 
 ---
@@ -10,8 +10,8 @@
 | 機能 ID | 機能名 | ステータス | 実装ファイル | テストファイル | 画面 ID | 備考 |
 |--------|------|---------|-----------|------------|--------|------|
 | F00 | ボトムナビゲーション | 🟢 | `app/lib/features/shell/main_shell.dart`, `app/lib/features/shell/widgets/floating_bottom_nav.dart` | - | S01 | 2026-05-03 にフローティング型に刷新 |
-| F01 | AI ラベル認識 | 🟢 | `app/lib/features/record/ai_label_screen.dart` | - | S05 | 2026-05-03 にビューファインダー UI 導入 |
-| F02 | パーソナライズ推薦 | 🟡 | `app/lib/features/analysis/screens/ai_suggestion_screen.dart`, `functions/src/index.ts` (`analyzeTaste`) | - | S04 | MVP 実装済み（2026-05-04） |
+| F01 | AI ラベル認識 | 🟢 | `app/lib/features/record/ai_label_screen.dart` | - | S05 | 2026-05-08: firebase_ai (Vertex AI) に移行。即時解析・ポーリング廃止 |
+| F02 | パーソナライズ推薦 | 🟢 | `app/lib/features/analysis/screens/ai_suggestion_screen.dart`, `app/lib/features/analysis/services/taste_analysis_service.dart` | - | S04 | 2026-05-08: firebase_ai (Vertex AI) に移行。Cloud Functions 廃止 |
 | F03 | テイスティングノート保存・一覧 | 🟢 | `app/lib/features/tasting_note/`, `app/lib/features/home/home_tab.dart` | - | S06 | 2026-05-03 にリデザイン適用 |
 | F04 | テイスティングノート詳細・編集 | 🟢 | `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart` | - | S07 | 2026-05-03 にヒーロー画像 + 5 ボタン評価に刷新 |
 | F05 | ユーザー認証 | 🟢 | `app/lib/main.dart` | - | S02, S03 | 2026-05-03 に `auth_gate.dart` 削除（未使用） |
@@ -19,7 +19,7 @@
 | F07 | 設定変更 | ⚪ | - | - | S09 | - |
 | F08 | コレクション自動登録・一覧 | 🟢 | `app/lib/features/collection/` | - | S13 | 2026-05-03 に 2 列グリッド + フィルターチップに刷新 |
 | F09 | マップ（都道府県制覇） | ⚪ | `app/lib/features/map/` | - | S11 | UI 雛形は実装済（ステータス完了は別 PR） |
-| F10 | テイスト分析 | 🟡 | `app/lib/features/analysis/` | - | S12 | MVP 実装済み（2026-05-04）、デザインシステム準拠 |
+| F10 | テイスト分析 | 🟢 | `app/lib/features/analysis/` | - | S12 | 2026-05-08: firebase_ai に移行完了 |
 | F11 | レビュー投稿 | ⚪ | - | - | S10 | - |
 | F12 | デザインシステム | 🟢 | `app/lib/core/theme/`, `app/lib/core/widgets/` | - | - | 2026-05-03 導入（[ADR-0002](adr/0002-design-system-and-theme-architecture.md)） |
 
@@ -36,12 +36,15 @@
 
 ## functions（Cloud Functions）
 
-| 機能 ID | 機能名 | ステータス | 実装ファイル | トリガー |
-|--------|------|---------|-----------|--------|
-| CF01 | AI ラベル認識 | 🟢 | `functions/src/index.ts` (`onImageUploaded`) | Storage onObjectFinalized |
-| CF02 | CI/CD 自動デプロイ | 🟢 | `.github/workflows/firebase-hosting-merge.yml` | main push |
-| CF03 | AI解析完了→ノート/コレクション更新 | 🟢 | `functions/src/index.ts` (`onAiLabelJobCompleted`) | Firestore onDocumentUpdated |
-| CF04 | テイスト分析（AI傾向分析・推薦） | 🟡 | `functions/src/index.ts` (`analyzeTaste`) | onCall (HTTPS) |
+> **Cloud Functions は 2026-05-08 に全廃止**しました。AI 機能は Firebase AI Logic（`firebase_ai`）に移行しています。
+> 詳細: [ADR-0003](adr/0003-migrate-openai-to-firebase-ai-logic.md)
+
+| 機能 ID | 機能名 | ステータス | 備考 |
+|--------|------|---------|------|
+| CF01 | AI ラベル認識 | ❌ 削除 | F01 として Flutter 側に移行 |
+| CF02 | CI/CD 自動デプロイ | 🟢 | `.github/workflows/` — Functions 部分は削除済み |
+| CF03 | AI解析完了→ノート/コレクション更新 | ❌ 削除 | Flutter 側で同期処理に統合 |
+| CF04 | テイスト分析（AI傾向分析・推薦） | ❌ 削除 | F02 として Flutter 側に移行 |
 
 ---
 

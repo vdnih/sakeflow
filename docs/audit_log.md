@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-05-08
+
+### OpenAI → Firebase AI Logic（Vertex AI）完全移行 + Cloud Functions 廃止
+
+- **内容**: AI 機能（ラベル認識・テイスト分析）を OpenAI + Cloud Functions からFirebase AI Logic（`firebase_ai` パッケージ、Vertex AI バックエンド）に移行。全 Cloud Functions を廃止し、AI 処理をクライアント側（Flutter）に集約
+- **変更ファイル**:
+  - 削除: `functions/src/index.ts` の全関数（`onImageUploaded` / `analyzeTaste` / `onAiLabelJobCompleted` / `helloWorld`）
+  - 更新: `functions/package.json` — `openai`・`node-fetch` 削除
+  - 更新: `firebase.json` — `functions` セクション・エミュレータ ports 削除
+  - 更新: `app/pubspec.yaml` — `cloud_functions` 削除、`firebase_ai: ^3.11.0` 追加
+  - 更新: `app/lib/emulator_config.dart` — `cloud_functions` エミュレータ設定削除
+  - 更新: `app/lib/features/record/ai_label_screen.dart` — `firebase_ai` で即時解析に書き直し、`ai_label_jobs` 書き込み削除
+  - 更新: `app/lib/features/tasting_note/models/tasting_note.dart` — `jobId`・`TastingNoteStatus` 削除
+  - 更新: `app/lib/features/tasting_note/repositories/tasting_note_repository.dart` — `createNote()` を AI 解析済みデータ受け取り形式に変更
+  - 更新: `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart` — `_buildProcessingView` / `_buildFailedView` 削除
+  - 更新: `app/lib/features/analysis/services/taste_analysis_service.dart` — `cloud_functions` → `firebase_ai` + `AnalysisRepository` に置換
+  - 更新: `app/lib/features/analysis/screens/ai_suggestion_screen.dart` — `FirebaseFunctionsException` 削除
+  - 更新: `firestore.rules` — `ai_label_jobs` コレクションルール削除
+  - 新規: `docs/adr/0003-migrate-openai-to-firebase-ai-logic.md`
+  - 更新: `docs/ARCHITECTURE.md`（v1.1 → v1.2）
+  - 更新: `docs/app/SPEC.md`（v1.1 → v1.2）
+  - 更新: `docs/feature_registry.md`
+- **理由**: 非同期2段階 Cloud Functions トリガー・`ai_label_jobs` 中間コレクション・ポーリング UX という複雑な構造を廃止し、クライアント側即時解析でシンプルな UX とコードを実現するため
+- **決定事項**:
+  - **Firebase AI Logic + Vertex AI** — API キー不要（Firebase Auth + サービスアカウント IAM）、Blaze プラン既存のため追加コストなし（詳細: ADR-0003）
+  - **`gemini-3.1-flash-lite`** — Vision 対応・構造化出力対応・$0.25/M tokens の最高コスパモデル
+  - **即時解析フロー** — `firebase_ai` 解析 + Storage アップロードを並列実行し、完了後に `tasting_notes` / `sakes` を直接書き込み。ポーリングとステータス管理が不要になった
+  - **Cloud Functions は将来必要時に `firebase init functions` で再生成** — 現時点では不要なインフラを削除
+
+---
+
 ## 2026-05-04
 
 ### テイスト分析 MVP 実装（デザインシステム準拠）

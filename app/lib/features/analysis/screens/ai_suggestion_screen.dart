@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../services/taste_analysis_service.dart';
@@ -64,10 +63,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                   );
                 }
                 if (snapshot.hasError) {
-                  final err = snapshot.error;
-                  final msg = err is FirebaseFunctionsException
-                      ? (err.message ?? err.code)
-                      : err.toString();
+                  final msg = snapshot.error.toString();
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
