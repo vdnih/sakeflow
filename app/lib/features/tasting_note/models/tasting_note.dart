@@ -1,26 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum TastingNoteStatus {
-  processing,
-  ready,
-  failed;
-
-  static TastingNoteStatus fromString(String value) {
-    return switch (value) {
-      'ready' => TastingNoteStatus.ready,
-      'failed' => TastingNoteStatus.failed,
-      _ => TastingNoteStatus.processing,
-    };
-  }
-
-  String toValue() => name;
-}
-
 class TastingNote {
   final String noteId;
   final String userId;
   final String? sakeId;
-  final TastingNoteStatus status;
   final String imageUrl;
   final DateTime drankAt;
   final String brand;
@@ -31,7 +14,6 @@ class TastingNote {
   final double? rating;
   final String? note;
   final bool drankLocally;
-  final String jobId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -39,7 +21,6 @@ class TastingNote {
     required this.noteId,
     required this.userId,
     this.sakeId,
-    required this.status,
     required this.imageUrl,
     required this.drankAt,
     required this.brand,
@@ -50,7 +31,6 @@ class TastingNote {
     this.rating,
     this.note,
     this.drankLocally = false,
-    required this.jobId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -61,7 +41,6 @@ class TastingNote {
       noteId: data['note_id'] as String,
       userId: data['user_id'] as String,
       sakeId: data['sake_id'] as String?,
-      status: TastingNoteStatus.fromString(data['status'] as String? ?? 'processing'),
       imageUrl: data['image_url'] as String? ?? '',
       drankAt: (data['drank_at'] as Timestamp).toDate(),
       brand: data['brand'] as String? ?? '',
@@ -72,7 +51,6 @@ class TastingNote {
       rating: (data['rating'] as num?)?.toDouble(),
       note: data['note'] as String?,
       drankLocally: data['drank_locally'] as bool? ?? false,
-      jobId: data['job_id'] as String? ?? '',
       createdAt: (data['created_at'] as Timestamp).toDate(),
       updatedAt: (data['updated_at'] as Timestamp).toDate(),
     );
@@ -83,7 +61,6 @@ class TastingNote {
       'note_id': noteId,
       'user_id': userId,
       if (sakeId != null) 'sake_id': sakeId,
-      'status': status.toValue(),
       'image_url': imageUrl,
       'drank_at': Timestamp.fromDate(drankAt),
       'brand': brand,
@@ -94,7 +71,6 @@ class TastingNote {
       if (rating != null) 'rating': rating,
       if (note != null) 'note': note,
       'drank_locally': drankLocally,
-      'job_id': jobId,
       'created_at': Timestamp.fromDate(createdAt),
       'updated_at': Timestamp.fromDate(updatedAt),
     };
@@ -102,7 +78,6 @@ class TastingNote {
 
   TastingNote copyWith({
     String? sakeId,
-    TastingNoteStatus? status,
     String? brand,
     String? brewery,
     String? prefecture,
@@ -117,7 +92,6 @@ class TastingNote {
       noteId: noteId,
       userId: userId,
       sakeId: sakeId ?? this.sakeId,
-      status: status ?? this.status,
       imageUrl: imageUrl,
       drankAt: drankAt,
       brand: brand ?? this.brand,
@@ -128,7 +102,6 @@ class TastingNote {
       rating: rating ?? this.rating,
       note: note ?? this.note,
       drankLocally: drankLocally ?? this.drankLocally,
-      jobId: jobId,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

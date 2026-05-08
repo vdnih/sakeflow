@@ -14,7 +14,11 @@ class TastingNoteRepository {
   Future<String> createNote({
     required String userId,
     required String imageUrl,
-    required String jobId,
+    required String brand,
+    required String brewery,
+    required String prefecture,
+    required List<String> tags,
+    required String sakeId,
     required DateTime drankAt,
   }) async {
     final noteId = const Uuid().v4();
@@ -22,15 +26,14 @@ class TastingNoteRepository {
     final note = TastingNote(
       noteId: noteId,
       userId: userId,
-      status: TastingNoteStatus.processing,
+      sakeId: sakeId,
       imageUrl: imageUrl,
       drankAt: drankAt,
-      brand: '',
-      brewery: '',
-      prefecture: '',
+      brand: brand,
+      brewery: brewery,
+      prefecture: prefecture,
       category: 'sake',
-      tags: [],
-      jobId: jobId,
+      tags: tags,
       createdAt: now,
       updatedAt: now,
     );

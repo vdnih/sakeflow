@@ -134,71 +134,10 @@ class _TastingNoteDetailScreenState
           }
           final note = snapshot.data!;
           _populateForm(note);
-
-          if (note.status == TastingNoteStatus.processing) {
-            return _buildProcessingView(note);
-          }
-          if (note.status == TastingNoteStatus.failed) {
-            return _buildFailedView(note);
-          }
           return _buildReadyView(note);
         },
       ),
     );
-  }
-
-  Widget _buildProcessingView(TastingNote note) {
-    return Stack(
-      children: [
-        _buildHero(note),
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 8,
-          left: 16,
-          child: _buildBackButton(),
-        ),
-        Positioned.fill(
-          top: 220,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(color: kAccentMain),
-                const SizedBox(height: 20),
-                Text('AIが解析中です…',
-                    style: AppTextStyles.headingSmall()),
-                const SizedBox(height: 8),
-                const Text(
-                  '解析完了後に評価やメモを入力できます',
-                  style: TextStyle(fontSize: 13, color: kTextSub),
-                ),
-                const SizedBox(height: 24),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: kSurface2,
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(color: kBorderDefault),
-                    ),
-                    child: const Text(
-                      'ホームに戻る',
-                      style:
-                          TextStyle(fontSize: 13, color: kTextSub),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFailedView(TastingNote note) {
-    return _buildReadyView(note);
   }
 
   Widget _buildReadyView(TastingNote note) {
