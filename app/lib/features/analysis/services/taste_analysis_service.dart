@@ -49,8 +49,17 @@ class TasteAnalysisResult {
 
 class TasteAnalysisService {
   final _analysisRepo = AnalysisRepository();
+  final bool _useMock;
+
+  /// [useMock] を省略すると `--dart-define=USE_MOCK_AI=true` の値を使用する。
+  /// 単体テスト時は `TasteAnalysisService(useMock: true)` で直接指定可能。
+  TasteAnalysisService({bool? useMock})
+      : _useMock = useMock ??
+            const bool.fromEnvironment('USE_MOCK_AI', defaultValue: false);
 
   Future<TasteAnalysisResult> analyze() async {
+    if (_useMock) return _mockResult();
+
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) throw Exception('ログインが必要です');
 
@@ -87,6 +96,36 @@ class TasteAnalysisService {
       suggestions: suggestions,
     );
   }
+
+  // ─── モックデータ ────────────────────────────────────────────────────
+
+  Future<TasteAnalysisResult> _mockResult() async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    return TasteAnalysisResult(
+      tendency: 'フルーティで軽快な純米大吟醸を好む傾向があります。'
+          '特に山口県・秋田県の蔵元を高く評価しており、'
+          '香りが華やかで後味がすっきりしたタイプが好みのようです。',
+      suggestions: [
+        TasteSuggestion(
+          brand: '新政 No.6',
+          reason: '現代的な秋田酵母で醸した純米酒。クリーンな酸味とフルーティな香りが特徴で、あなたの好みにマッチします。',
+          categoryOrStyle: '純米酒',
+        ),
+        TasteSuggestion(
+          brand: '十四代 龍の落とし子',
+          reason: '山形を代表する人気銘柄。華やかな吟醸香と上品な甘みが、軽快な飲み口を好むあなたに合います。',
+          categoryOrStyle: '純米大吟醸',
+        ),
+        TasteSuggestion(
+          brand: '鍋島 Special Yellow Label',
+          reason: '佐賀県のモダンな一本。マスカットを思わせる香りと爽やかなキレが、フルーティ志向のあなたにおすすめです。',
+          categoryOrStyle: '純米吟醸',
+        ),
+      ],
+    );
+  }
+
+  // ─── プロンプト構築 ──────────────────────────────────────────────────
 
   String _buildPrompt(List<Sake> topByCount, List<Sake> topByRating) {
     final byCount = topByCount.map((s) => {

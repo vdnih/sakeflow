@@ -1,39 +1,17 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_ai/firebase_ai.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../tasting_note/repositories/tasting_note_repository.dart';
 import '../tasting_note/screens/tasting_note_detail_screen.dart';
 import '../collection/repositories/sake_repository.dart';
+import 'services/ai_label_service.dart';
 
 enum _CaptureStage { idle, captured, analyzing }
-
-// AI 解析結果スキーマ
-final _sakeLabelSchema = Schema.object(
-  properties: {
-    'brand': Schema.string(description: '日本酒の銘柄名（例：獺祭、新政）'),
-    'brewery': Schema.string(description: '蔵元の名前（例：旭酒造、新政酒造）'),
-    'prefecture': Schema.string(
-        description: '蔵元の所在都道府県。正式名称（例：京都府、新潟県）'),
-    'tags': Schema.array(
-      items: Schema.string(),
-      description: '特定名称・酒米・精米歩合・製法・フレーバー等のスペック',
-    ),
-  },
-);
-
-const _labelPrompt =
-    '添付された日本酒のラベル画像から、銘柄(brand)・蔵元(brewery)・'
-    '蔵元の所在都道府県(prefecture)を読み取ってください。'
-    '都道府県は「青森県」「京都府」「東京都」「大阪府」のような正式名称で返してください。'
-    'それ以外のスペック（特定名称、酒米、精米歩合、製法、フレーバーなど）はすべて tags 配列に抽出してください。'
-    '値が読み取れない場合は空文字または空配列にしてください。';
 
 class AiLabelScreen extends StatefulWidget {
   const AiLabelScreen({super.key});
@@ -49,6 +27,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
 
   final _noteRepo = TastingNoteRepository();
   final _sakeRepo = SakeRepository();
+  final _aiLabelService = AiLabelService.create();
 
   Future<void> _pickImage() async {
     setState(() {
@@ -84,24 +63,9 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
       final imageId = const Uuid().v4();
       final storagePath = 'user_uploads/$userId/$imageId.jpg';
 
-      // firebase_ai による解析 と Storage アップロードを並列実行
-      final model = FirebaseAI.vertexAI().generativeModel(
-        model: 'gemini-3.1-flash-lite',
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-          responseSchema: _sakeLabelSchema,
-        ),
-      );
-
+      // AI 解析 と Storage アップロードを並列実行
       final results = await Future.wait([
-        // AI 解析
-        model.generateContent([
-          Content.multi([
-            TextPart(_labelPrompt),
-            InlineDataPart('image/jpeg', _imageBytes!),
-          ]),
-        ]),
-        // Storage アップロード
+        _aiLabelService.analyzeLabel(_imageBytes!),
         FirebaseStorage.instance
             .ref()
             .child(storagePath)
@@ -112,15 +76,13 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
                 .getDownloadURL()),
       ]);
 
-      final aiResponse = results[0] as GenerateContentResponse;
+      final labelData = results[0] as SakeLabelData;
       final imageUrl = results[1] as String;
 
-      // AI 結果をパース
-      final raw = jsonDecode(aiResponse.text ?? '{}') as Map<String, dynamic>;
-      final brand = raw['brand'] as String? ?? '';
-      final brewery = raw['brewery'] as String? ?? '';
-      final prefecture = raw['prefecture'] as String? ?? '';
-      final tags = List<String>.from(raw['tags'] as List? ?? []);
+      final brand = labelData.brand;
+      final brewery = labelData.brewery;
+      final prefecture = labelData.prefecture;
+      final tags = labelData.tags;
 
       final drankAt = DateTime.now();
 
