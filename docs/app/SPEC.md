@@ -1,7 +1,7 @@
 # sakeflow-log アプリ SPEC（ビジネスルール仕様）
 
-> バージョン: 1.1  
-> 最終更新: 2026-05-02
+> バージョン: 1.2  
+> 最終更新: 2026-05-08
 
 ---
 
@@ -46,8 +46,7 @@
 |---------|---|------|------|
 | note_id | string | ノート ID（UUID） | ✅ |
 | user_id | string | ユーザー ID | ✅ |
-| sake_id | string | sakes コレクションへの参照（解析完了後にセット） | - |
-| status | string | "processing" / "ready" / "failed" | ✅ |
+| sake_id | string | sakes コレクションへの参照 | ✅ |
 | image_url | string | 写真の Storage URL | ✅ |
 | drank_at | timestamp | 飲んだ日時 | ✅ |
 | location | map | `{lat, lng, place_name}` ※ Phase 2 | - |
@@ -58,7 +57,7 @@
 | tags | array\<string\> | 特定名称・酒米・精米歩合・製法・フレーバー等のスペック | - |
 | rating | number | 評価（1.0-5.0、0.5 刻み） | - |
 | note | string | テイスティングメモ（最大 1000 文字） | - |
-| job_id | string | AI ラベル認識ジョブ ID（紐付け用） | ✅ |
+| drank_locally | boolean | 産地の都道府県で飲んだ場合 true | - |
 | created_at | timestamp | 記録作成日時 | ✅ |
 | updated_at | timestamp | 最終更新日時 | ✅ |
 
@@ -81,10 +80,6 @@
 | last_drank_at | timestamp | 直近に飲んだ日時 | ✅ |
 | created_at | timestamp | 作成日時 | ✅ |
 | updated_at | timestamp | 最終更新日時 | ✅ |
-
-### ai_label_jobs コレクション（`ai_label_jobs/{jobId}`）
-
-詳細は [docs/app/ai-label-recognition.md](ai-label-recognition.md) を参照。
 
 ---
 
@@ -126,7 +121,8 @@
 |-----|------|
 | 画像形式 | JPEG のみ（.jpg 拡張子） |
 | 画像サイズ | TODO: 最大サイズ制限を設定 |
-| ストレージパス | `user_uploads/{userId}/{jobId}.jpg` |
+| ストレージパス | `user_uploads/{userId}/{imageId}.jpg` |
+| AI | Firebase AI Logic（`firebase_ai`）、クライアント側で同期実行 |
 
 ---
 
@@ -136,8 +132,8 @@
 
 ```
 users/{userId}: 本人のみ読み書き（uid 一致）
-users/{userId}/records/{recordId}: 本人のみ読み書き
-ai_label_jobs/{jobId}: user_id が uid と一致する場合のみ読み取り可
+users/{userId}/tasting_notes/{noteId}: 本人のみ読み書き
+users/{userId}/sakes/{sakeId}: 本人のみ読み書き
 ```
 
 ### Storage

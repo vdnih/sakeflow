@@ -1,7 +1,7 @@
 # sakeflow モノレポ アーキテクチャ
 
-> バージョン: 1.1  
-> 最終更新: 2026-05-02
+> バージョン: 1.2  
+> 最終更新: 2026-05-08
 
 ---
 
@@ -21,26 +21,16 @@
 └───────────┬───────────┘   └──────────────┬──────────────────┘
             │                              │
             │ microCMS API                 │ Firebase SDK
-            ▼                              ▼
-┌───────────────────────┐   ┌─────────────────────────────────┐
+            ▼                              │ + firebase_ai (Vertex AI)
+┌───────────────────────┐   ┌─────────────▼───────────────────┐
 │   microCMS            │   │   Firebase                      │
 │   (Headless CMS)      │   │   ├── Authentication            │
 │   - blogs endpoint    │   │   ├── Firestore                 │
 │   - categories        │   │   ├── Storage                   │
-│   endpoint            │   │   └── Hosting                   │
-└───────────────────────┘   └──────────────┬──────────────────┘
-                                           │ Storage トリガー
-                                           ▼
-                             ┌─────────────────────────────────┐
-                             │   Firebase Cloud Functions      │
-                             │   (Node.js 20 / TypeScript)     │
-                             │   onImageUploaded               │
-                             └──────────────┬──────────────────┘
-                                           │ OpenAI API
-                                           ▼
-                             ┌─────────────────────────────────┐
-                             │   OpenAI API (gpt-4o Vision)    │
-                             └─────────────────────────────────┘
+│   endpoint            │   │   ├── Hosting                   │
+└───────────────────────┘   │   └── AI Logic (Vertex AI)      │
+                            │       gemini-3.1-flash-lite      │
+                            └─────────────────────────────────┘
 ```
 
 ---
@@ -69,21 +59,15 @@
 | 認証 | Firebase Authentication + firebase_ui_auth |
 | データベース | Cloud Firestore |
 | ストレージ | Firebase Storage |
+| AI | Firebase AI Logic（`firebase_ai`）+ Vertex AI + `gemini-3.1-flash-lite` |
 | 主な対応 | Web（主）, iOS, Android |
 
 詳細: [docs/app/SOFTWARE_ARCHITECTURE.md](app/SOFTWARE_ARCHITECTURE.md) / [docs/app/FIREBASE_ARCHITECTURE.md](app/FIREBASE_ARCHITECTURE.md)
 
 ### functions（`functions/`）
 
-| 項目 | 詳細 |
-|-----|------|
-| ランタイム | Node.js 20 |
-| 言語 | TypeScript 5.4 |
-| トリガー | Storage onObjectFinalized（画像アップロード） |
-| 外部 API | OpenAI API（gpt-4o Vision） |
-| シークレット | Firebase Secret Manager（`OPENAI_API_KEY`） |
-
-詳細: [docs/functions/ARCHITECTURE.md](functions/ARCHITECTURE.md)
+> **注**: AI 機能は Firebase AI Logic に移行しました（[ADR-0003](adr/0003-migrate-openai-to-firebase-ai-logic.md)）。
+> Cloud Functions は現在使用していません。将来必要になった場合は `firebase init functions` で再生成します。
 
 ---
 
@@ -95,11 +79,9 @@ GitHub main ブランチへの push
          ├──→ Firebase App Hosting（blog/）
          │     └── Next.js ビルド → Firebase インフラ（SSR/ISR/CDN）
          │
-         └──→ GitHub Actions（app/ + functions/）
+         └──→ GitHub Actions（app/）
                ├── Flutter web ビルド（app/build/web）
-               └── firebase deploy
-                     ├── Hosting（app/build/web）
-                     └── Functions（functions/lib）
+               └── firebase deploy --only hosting
 ```
 
 ### GitHub Actions ワークフロー
@@ -114,7 +96,7 @@ GitHub main ブランチへの push
 |---------|---------|------------|
 | Firestore | Firebase Auth UID | セキュリティルール（uid ベース） |
 | Storage | Firebase Auth UID | セキュリティルール（uid ベース） |
-| Cloud Functions | Firebase Auth Token / Storage トリガー | 関数内で UID を検証 |
+| Firebase AI Logic | Firebase Auth + App Check | Vertex AI IAM（サービスアカウント） |
 | microCMS | API Key（Secret Manager） | Firebase App Hosting 経由 |
 
 ---
