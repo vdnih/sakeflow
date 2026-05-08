@@ -23,6 +23,10 @@ jobs:
           flutter-version: '3.29.3'
       - run: flutter pub get
         working-directory: app
+      - run: dart analyze
+        working-directory: app
+      - run: flutter test
+        working-directory: app
       - run: flutter build web --release
         working-directory: app
       - run: cd functions && npm ci
