@@ -75,7 +75,7 @@ class TasteAnalysisService {
     final prompt = _buildPrompt(topByCount, topByRating);
 
     // firebase_ai で解析
-    final model = FirebaseAI.vertexAI().generativeModel(
+    final model = FirebaseAI.googleAI().generativeModel(
       model: 'gemini-3.1-flash-lite',
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
