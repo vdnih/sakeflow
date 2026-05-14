@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_ai/firebase_ai.dart';
@@ -17,6 +18,17 @@ class SakeLabelData {
     required this.tags,
   });
 }
+
+/// AI が画像を日本酒のラベルとして認識できなかった場合に投げられる例外。
+class SakeLabelNotRecognizedException implements Exception {
+  final String message;
+  const SakeLabelNotRecognizedException(
+      [this.message = 'ラベルを認識できませんでした']);
+  @override
+  String toString() => message;
+}
+
+const _analyzeTimeout = Duration(seconds: 30);
 
 // ─── スキーマ／プロンプト（Vertex AI 用）────────────────────────────────
 
@@ -76,14 +88,25 @@ class _VertexAiLabelService implements AiLabelService {
         TextPart(_labelPrompt),
         InlineDataPart('image/jpeg', imageBytes),
       ]),
-    ]);
+    ]).timeout(_analyzeTimeout);
 
-    final raw =
-        jsonDecode(response.text ?? '{}') as Map<String, dynamic>;
+    Map<String, dynamic> raw;
+    try {
+      raw = jsonDecode(response.text ?? '{}') as Map<String, dynamic>;
+    } catch (_) {
+      throw const SakeLabelNotRecognizedException();
+    }
+
+    final brand = (raw['brand'] as String? ?? '').trim();
+    final brewery = (raw['brewery'] as String? ?? '').trim();
+    if (brand.isEmpty && brewery.isEmpty) {
+      throw const SakeLabelNotRecognizedException();
+    }
+
     return SakeLabelData(
-      brand: raw['brand'] as String? ?? '',
-      brewery: raw['brewery'] as String? ?? '',
-      prefecture: raw['prefecture'] as String? ?? '',
+      brand: brand,
+      brewery: brewery,
+      prefecture: (raw['prefecture'] as String? ?? '').trim(),
       tags: List<String>.from(raw['tags'] as List? ?? []),
     );
   }

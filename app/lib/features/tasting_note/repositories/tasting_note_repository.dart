@@ -78,6 +78,13 @@ class TastingNoteRepository {
     });
   }
 
+  Future<void> deleteNote({
+    required String userId,
+    required String noteId,
+  }) async {
+    await _col(userId).doc(noteId).delete();
+  }
+
   Stream<TastingNote> watchNote(String userId, String noteId) {
     return _col(userId).doc(noteId).snapshots().where((s) => s.exists).map(
           (s) => TastingNote.fromFirestore(s),

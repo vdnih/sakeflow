@@ -91,6 +91,30 @@ class SakeRepository {
     });
   }
 
+  /// tasting_count を 1 減らし、0 以下になった sake は同時に削除する。
+  /// 返り値: 削除した場合 true。
+  Future<bool> decrementOrDeleteSake({
+    required String userId,
+    required String sakeId,
+  }) async {
+    final docRef = _col(userId).doc(sakeId);
+    return _db.runTransaction<bool>((tx) async {
+      final snap = await tx.get(docRef);
+      if (!snap.exists) return true;
+      final current = Sake.fromFirestore(snap);
+      final newCount = current.tastingCount - 1;
+      if (newCount <= 0) {
+        tx.delete(docRef);
+        return true;
+      }
+      tx.update(docRef, {
+        'tasting_count': newCount,
+        'updated_at': Timestamp.fromDate(DateTime.now()),
+      });
+      return false;
+    });
+  }
+
   Stream<List<Sake>> listSakes(String userId) {
     return _col(userId)
         .orderBy('last_drank_at', descending: true)

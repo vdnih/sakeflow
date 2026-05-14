@@ -207,8 +207,98 @@ class _TastingNoteDetailScreenState
           left: 16,
           child: _buildBackButton(),
         ),
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8,
+          right: 16,
+          child: _buildDeleteButton(note),
+        ),
+        if (_saving)
+          Positioned.fill(
+            child: ColoredBox(
+              color: const Color(0x99000000),
+              child: const Center(
+                child: CircularProgressIndicator(color: kAccentMain),
+              ),
+            ),
+          ),
       ],
     );
+  }
+
+  Widget _buildDeleteButton(TastingNote note) {
+    return GestureDetector(
+      onTap: _saving ? null : () => _confirmDelete(note),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.5),
+          shape: BoxShape.circle,
+          border: Border.all(color: kBorderDefault),
+        ),
+        child: const Icon(Icons.delete_outline,
+            color: Color(0xFFFF6B6B), size: 18),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(TastingNote note) async {
+    final brandLabel = note.brand.isNotEmpty ? note.brand : 'この記録';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurface2,
+        title: Text('この記録を削除しますか？',
+            style: AppTextStyles.headingSmall()),
+        content: Text(
+          '削除すると元に戻せません。コレクションの$brandLabelからも 1 件減ります。',
+          style: const TextStyle(color: kTextSub, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル',
+                style: TextStyle(color: kTextSub)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('削除する',
+                style: TextStyle(color: Color(0xFFFF6B6B))),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await _delete(note);
+    }
+  }
+
+  Future<void> _delete(TastingNote note) async {
+    setState(() => _saving = true);
+    try {
+      await _noteRepo.deleteNote(
+        userId: widget.userId,
+        noteId: widget.noteId,
+      );
+      if (note.sakeId != null) {
+        await _sakeRepo.decrementOrDeleteSake(
+          userId: widget.userId,
+          sakeId: note.sakeId!,
+        );
+      }
+      if (!mounted) return;
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/home', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: kSurface2,
+          content: Text('削除に失敗しました: $e'),
+        ),
+      );
+    }
   }
 
   Widget _buildHero(TastingNote note) {
