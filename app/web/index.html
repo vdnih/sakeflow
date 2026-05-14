@@ -31,8 +31,69 @@
 
   <title>sakeflow_log</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    #inapp-warning {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #121212;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      box-sizing: border-box;
+      z-index: 9999;
+      text-align: center;
+    }
+    #inapp-warning .icon { font-size: 56px; margin-bottom: 16px; }
+    #inapp-warning h2 { margin: 0 0 12px; font-size: 20px; font-weight: 700; }
+    #inapp-warning p { margin: 0 0 20px; font-size: 15px; line-height: 1.7; color: #bbb; }
+    #inapp-warning .steps {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 14px;
+      line-height: 1.9;
+      color: #aaa;
+      text-align: left;
+      width: 100%;
+      max-width: 320px;
+    }
+    #inapp-warning .steps strong { color: #fff; }
+  </style>
 </head>
 <body>
+  <div id="inapp-warning">
+    <div class="icon">🍶</div>
+    <h2>Sakeflow</h2>
+    <p>このブラウザでは<br>Google ログインを利用できません。</p>
+    <div class="steps">
+      <strong>LINEをご利用の場合</strong><br>
+      右上の <strong>･･･</strong> メニュー<br>
+      →「他のアプリで開く」<br>
+      または「ブラウザで開く」を選択<br><br>
+      <strong>その他のアプリの場合</strong><br>
+      Chrome または Safari で<br>直接URLを開いてください。
+    </div>
+  </div>
+  <script>
+    (function () {
+      var ua = navigator.userAgent;
+      var isInApp =
+        /Line\//i.test(ua) ||
+        /FBAN|FBAV/i.test(ua) ||
+        /Instagram/i.test(ua) ||
+        /Twitter/i.test(ua) ||
+        /MicroMessenger/i.test(ua);
+      if (isInApp) {
+        var el = document.getElementById('inapp-warning');
+        el.style.display = 'flex';
+      }
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
