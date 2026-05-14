@@ -1,6 +1,7 @@
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -119,12 +120,18 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
         ),
       );
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _stage = _CaptureStage.captured;
-          _errorMessage = 'エラーが発生しました。もう一度お試しください。';
-        });
-      }
+      if (!mounted) return;
+      final message = switch (e) {
+        SakeLabelNotRecognizedException() =>
+          'お酒のラベルとして認識できませんでした。別の写真でお試しください。',
+        TimeoutException() =>
+          '解析がタイムアウトしました。電波の良い場所で再度お試しください。',
+        _ => 'エラーが発生しました。もう一度お試しください。',
+      };
+      setState(() {
+        _stage = _CaptureStage.captured;
+        _errorMessage = message;
+      });
     }
   }
 
