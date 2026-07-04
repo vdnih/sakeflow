@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-07-04
+
+### お酒のラベル分類モデルを `gemini-3.1-flash-lite` → `gemini-3.5-flash` に変更
+
+- **内容**: お酒のラベル分類（画像からブランド・蔵元・都道府県・タグを読み取る機能）で使用する Firebase AI Logic のモデルを `gemini-3.1-flash-lite` から `gemini-3.5-flash` に変更
+- **変更ファイル**:
+  - 更新: `app/lib/features/record/services/ai_label_service.dart` — `_VertexAiLabelService.analyzeLabel()` のモデル名を `gemini-3.5-flash` に変更
+- **理由**: ラベル分類精度の向上を目的に、より高性能な Flash 系モデルへ移行するため
+- **決定事項**:
+  - **ラベル分類のみが対象** — 味の傾向分析（`app/lib/features/analysis/services/taste_analysis_service.dart`）は引き続き `gemini-3.1-flash-lite` を使用する
+  - **スキーマ・プロンプト・レスポンス処理・モック実装は変更なし** — モデル名のみの差し替え
+
+---
+
 ## 2026-05-08
 
 ### OpenAI → Firebase AI Logic（Vertex AI）完全移行 + Cloud Functions 廃止
