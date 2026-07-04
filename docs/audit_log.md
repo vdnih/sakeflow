@@ -11,6 +11,7 @@
 - **内容**: `main` へのマージ時に走る Firebase Hosting デプロイワークフローが、廃止済みの Cloud Functions をデプロイしようとして失敗していた問題を修正
 - **変更ファイル**:
   - 更新: `.github/workflows/firebase-hosting-merge.yml` — `Deploy Cloud Functions` ステップ・functions の `npm ci` / `npm run build` ステップ・functions 用の `setup-node`（npm キャッシュ）設定を削除
+  - 更新: `.github/workflows/firebase-hosting-pull-request.yml` — 廃止済み functions の `npm ci` / `npm run build` ステップと functions 用 `setup-node` 設定を削除（デプロイ失敗はしていなかったが、merge 側と構成を揃えて不要なステップを整理）
 - **理由**: 2026-05-08 の移行で全 Cloud Functions を廃止し `firebase.json` から `functions` ターゲットを削除したが、デプロイワークフローに `npx firebase-tools deploy --only functions` ステップが残存。`No targets in firebase.json match '--only functions'` エラーで exit code 1 となり、Hosting デプロイ自体は成功しているのにジョブが失敗扱いになっていた（PR #21 以降）
 - **決定事項**:
   - **Hosting のみをデプロイ** — Functions は廃止済みのため、ワークフローから Functions 関連ステップを全て除去
