@@ -29,7 +29,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
   final _sakeRepo = SakeRepository();
   final _aiLabelService = AiLabelService.create();
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage([ImageSource source = ImageSource.camera]) async {
     setState(() {
       _errorMessage = null;
       _imageBytes = null;
@@ -37,7 +37,7 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
     });
     try {
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.camera);
+      final pickedFile = await picker.pickImage(source: source);
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
         setState(() {
@@ -279,19 +279,14 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               if (_stage == _CaptureStage.captured)
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: kSurface2,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: kBorderDefault),
-                    ),
-                    child:
-                        const Icon(Icons.refresh, color: kTextSub, size: 22),
-                  ),
+                _buildCircleButton(
+                  icon: Icons.refresh,
+                  onTap: () => _pickImage(),
+                )
+              else if (_stage == _CaptureStage.idle)
+                _buildCircleButton(
+                  icon: Icons.photo_library,
+                  onTap: () => _pickImage(ImageSource.gallery),
                 )
               else
                 const SizedBox(width: 44),
@@ -316,6 +311,25 @@ class _AiLabelScreenState extends State<AiLabelScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: kSurface2,
+          shape: BoxShape.circle,
+          border: Border.all(color: kBorderDefault),
+        ),
+        child: Icon(icon, color: kTextSub, size: 22),
       ),
     );
   }
