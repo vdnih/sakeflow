@@ -6,6 +6,20 @@
 
 ## 2026-07-04
 
+### マージ時デプロイ失敗の修正（廃止済み Cloud Functions デプロイステップを除去）
+
+- **内容**: `main` へのマージ時に走る Firebase Hosting デプロイワークフローが、廃止済みの Cloud Functions をデプロイしようとして失敗していた問題を修正
+- **変更ファイル**:
+  - 更新: `.github/workflows/firebase-hosting-merge.yml` — `Deploy Cloud Functions` ステップ・functions の `npm ci` / `npm run build` ステップ・functions 用の `setup-node`（npm キャッシュ）設定を削除
+- **理由**: 2026-05-08 の移行で全 Cloud Functions を廃止し `firebase.json` から `functions` ターゲットを削除したが、デプロイワークフローに `npx firebase-tools deploy --only functions` ステップが残存。`No targets in firebase.json match '--only functions'` エラーで exit code 1 となり、Hosting デプロイ自体は成功しているのにジョブが失敗扱いになっていた（PR #21 以降）
+- **決定事項**:
+  - **Hosting のみをデプロイ** — Functions は廃止済みのため、ワークフローから Functions 関連ステップを全て除去
+  - **将来 Functions を再導入する場合** — `firebase.json` に `functions` ターゲットを追加した上で、デプロイステップを復活させる
+
+---
+
+## 2026-07-04
+
 ### お酒のラベル分類モデルを `gemini-3.1-flash-lite` → `gemini-3.5-flash` に変更
 
 - **内容**: お酒のラベル分類（画像からブランド・蔵元・都道府県・タグを読み取る機能）で使用する Firebase AI Logic のモデルを `gemini-3.1-flash-lite` から `gemini-3.5-flash` に変更
