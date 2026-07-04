@@ -64,7 +64,7 @@ class _VertexAiLabelService implements AiLabelService {
   @override
   Future<SakeLabelData> analyzeLabel(Uint8List imageBytes) async {
     final model = FirebaseAI.googleAI().generativeModel(
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-3.5-flash',
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         responseSchema: _sakeLabelSchema,
