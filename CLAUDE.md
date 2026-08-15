@@ -43,7 +43,7 @@ npm run build
 
 `app/lib/features/{home, record, collection, tasting_note, analysis, map, shell}/` の feature 単位構成（models/repositories/services/screens）。`lib` 直下は `main.dart` / `firebase_options.dart` / `emulator_config.dart` のみ。
 
-状態管理・ルーティングは未確定（`StatefulWidget` + `setState`、`MaterialApp.routes`）。riverpod・go_router は未導入。方針は `docs/adr/0004-*`（起票され次第）を参照。
+状態管理・ルーティングは `StatefulWidget` + `setState`、`MaterialApp.routes` を正式採用（[ADR-0004](docs/adr/0004-state-management-and-routing.md)）。riverpod・go_router は導入しない。画面をまたぐ状態共有やネストしたルーティングが必要になったら ADR を起票して判断し直す。
 
 ## 4. 知らないと事故るもの
 

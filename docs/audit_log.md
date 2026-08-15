@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-08-15
+
+### 開発再開に向けた棚卸し（`_hub` 反映・横断規約是正・負の遺産の掃除）
+
+- **内容**: 別端末で 2026-05 に集中開発された後 2026-07-04 を最後に約6週間止まっていたリポジトリを、別環境に clone して再開するにあたり棚卸しを実施
+- **決定事項**:
+  - **`docs/WBS.md` を削除** — 2026-05-02 で更新が止まり、削除済みファイル（`auth_gate.dart` 等）を `✅ DONE` として参照するなど `docs/feature_registry.md` と矛盾していた。以後、機能の実装状況は `feature_registry.md` を唯一の情報源とする。残課題・後続タスクは GitHub Issue で管理する（`_hub/CLAUDE.md` の方針に合わせる）
+  - **`functions/` ディレクトリを完全削除** — ADR-0003（2026-05-08）で機能は空になっていたが、ディレクトリと `package-lock.json` が残存していた
+  - **マージ済みで削除漏れだったリモートブランチ 14 本を削除**
+  - **CI の品質ゲート（`dart analyze` / `flutter test`）を deploy workflow から分離** — 従来は PR 時のみ実行され、`main` への merge 時は無検証だった
+  - **`docs/app/ai-label-recognition.md` を削除** — OpenAI + Cloud Functions + Storage トリガー + Firestore ポーリングという旧アーキテクチャの設計書で、現行実装（クライアント側 `FirebaseAI.googleAI()` による同期呼び出し）とは無関係。書き直すのではなく削除し、コード（`app/lib/features/record/services/ai_label_service.dart`）を正とする
+  - **`_hub/PORTFOLIO.md` / `_hub/products/sakeflow.md` に登録**（別リポジトリ `_hub` 側の変更）。ステータスは active
+- **保留**: 状態管理（Riverpod 未導入）・ルーティング（GoRouter 未導入）の方針は未決のまま。ADR-0004 として起票予定
+
+---
+
 ## 2026-07-04
 
 ### マージ時デプロイ失敗の修正（廃止済み Cloud Functions デプロイステップを除去）

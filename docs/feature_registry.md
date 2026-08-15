@@ -1,6 +1,6 @@
 # sakeflow 機能レジストリ
 
-> 最終更新: 2026-05-08（F09 マップ RELEASED 確定・テストファイル列追加）  
+> 最終更新: 2026-08-15（#23 アプリ内ブラウザ警告・#25 AIモデル更新・#27 カメラロール選択・#24 AI解析タイムアウト修正/ノート削除機能を反映）  
 > ステータス: 🟢RELEASED / 🟡IN_PROGRESS / ⚪PLANNED / 🔴BLOCKED
 
 ---
@@ -10,11 +10,11 @@
 | 機能 ID | 機能名 | ステータス | 実装ファイル | テストファイル | 画面 ID | 備考 |
 |--------|------|---------|-----------|------------|--------|------|
 | F00 | ボトムナビゲーション | 🟢 | `app/lib/features/shell/main_shell.dart`, `app/lib/features/shell/widgets/floating_bottom_nav.dart` | - | S01 | 2026-05-03 にフローティング型に刷新 |
-| F01 | AI ラベル認識 | 🟢 | `app/lib/features/record/ai_label_screen.dart` | `app/test/features/record/services/ai_label_service_test.dart` | S05 | 2026-05-08: firebase_ai (Vertex AI) に移行。即時解析・ポーリング廃止 |
+| F01 | AI ラベル認識 | 🟢 | `app/lib/features/record/ai_label_screen.dart`, `app/lib/features/record/services/ai_label_service.dart` | `app/test/features/record/services/ai_label_service_test.dart` | S05 | 2026-05-08: firebase_ai (Vertex AI) に移行。2026-07: カメラロールからの写真選択（#27）、AI モデル更新（#25）。2026-08: 解析タイムアウト・非認識時の例外処理を追加（#24、テスト未追加） |
 | F02 | パーソナライズ推薦 | 🟢 | `app/lib/features/analysis/screens/ai_suggestion_screen.dart`, `app/lib/features/analysis/services/taste_analysis_service.dart` | - | S04 | 2026-05-08: firebase_ai (Vertex AI) に移行。Cloud Functions 廃止 |
 | F03 | テイスティングノート保存・一覧 | 🟢 | `app/lib/features/tasting_note/`, `app/lib/features/home/home_tab.dart` | `app/test/features/tasting_note/` | S06 | 2026-05-03 にリデザイン適用 |
-| F04 | テイスティングノート詳細・編集 | 🟢 | `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart` | - | S07 | 2026-05-03 にヒーロー画像 + 5 ボタン評価に刷新 |
-| F05 | ユーザー認証 | 🟢 | `app/lib/main.dart` | - | S02, S03 | 2026-05-03 に `auth_gate.dart` 削除（未使用） |
+| F04 | テイスティングノート詳細・編集・削除 | 🟢 | `app/lib/features/tasting_note/screens/tasting_note_detail_screen.dart`, `app/lib/features/tasting_note/repositories/tasting_note_repository.dart`（`deleteNote`）, `app/lib/features/collection/repositories/sake_repository.dart`（`decrementOrDeleteSake`） | - | S07 | 2026-05-03 にヒーロー画像 + 5 ボタン評価に刷新。2026-08: 削除機能を追加（#24）。削除ロジックにリポジトリ層のテストが無い |
+| F05 | ユーザー認証 | 🟢 | `app/lib/main.dart` | - | S02, S03 | 2026-05-03 に `auth_gate.dart` 削除（未使用）。2026-05-14: LINE 等アプリ内ブラウザでの Google Sign-In ブロックを検知して警告表示（#23） |
 | F06 | プロフィール編集 | ⚪ | - | - | S08 | - |
 | F07 | 設定変更 | ⚪ | - | - | S09 | - |
 | F08 | コレクション自動登録・一覧 | 🟢 | `app/lib/features/collection/` | `app/test/features/collection/` | S13 | 2026-05-03 に 2 列グリッド + フィルターチップに刷新 |
