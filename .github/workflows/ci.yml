@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  analyze_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # ローカル開発環境と同じバージョンに固定する。
+      # `channel: stable` にすると Flutter の更新で CI だけが予告なく落ちることがある
+      # （my_career_app / friendnote で実際に発生）。Flutter 本体の更新は独立したタスクとして行い、
+      # その際にここも更新する。
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.29.3
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        working-directory: app
+      - run: dart analyze
+        working-directory: app
+      - run: flutter test
+        working-directory: app
