@@ -14,28 +14,24 @@ sakeflow/
 │   ├── build/
 │   └── ...
 │
-├── blog/                      # ブランドサイト（Next.js、Vercelでホスティング）
+├── blog/                      # ブランドサイト（Next.js、Firebase App Hostingでホスティング）
 │   └── ...
-│
-├── functions/                 # Firebase Functions（OpenAI連携など）
-│   └── src/
 │
 ├── docs/                      # 要件・設計・GA設計など（Cursorで管理）
 │   └── ...
 │
 ├── .github/workflows/         # GitHub Actions（Firebase deploy用）
-├── firebase.json              # Firebase Hosting/Functions設定
+├── firebase.json              # Firebase Hosting設定
 ├── .firebaserc                # Firebaseプロジェクト接続情報
 └── README.md
 ```
 
 ### 各ディレクトリの説明
 - **app/**: Flutter製のアプリ本体。Firebase Hostingでホスティングされます。
-- **blog/**: ブランドサイト（Next.js製）。Vercelでホスティングされます。
-- **functions/**: Firebase Functionsのコード（OpenAI連携などを含む）。
+- **blog/**: ブランドサイト（Next.js製）。Firebase App Hostingでホスティングされます。
 - **docs/**: 要件定義・設計・Google Analytics設計などのドキュメント。Cursorで管理。
 - **.github/workflows/**: GitHub Actionsのワークフロー定義（Firebaseデプロイ用）。
-- **firebase.json**: Firebase HostingやFunctionsの設定ファイル。
+- **firebase.json**: Firebase Hostingの設定ファイル。
 - **.firebaserc**: Firebaseプロジェクトの接続情報。
 - **cors.json**: Firebase Storage バケットの CORS 設定。
 
