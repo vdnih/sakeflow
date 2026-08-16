@@ -43,13 +43,13 @@ npm run build
 
 `app/lib/features/{home, record, collection, tasting_note, analysis, map, shell}/` の feature 単位構成（models/repositories/services/screens）。`lib` 直下は `main.dart` / `firebase_options.dart` / `emulator_config.dart` のみ。
 
-状態管理・ルーティングは未確定（`StatefulWidget` + `setState`、`MaterialApp.routes`）。riverpod・go_router は未導入。方針は `docs/adr/0004-*`（起票され次第）を参照。
+状態管理・ルーティングは `StatefulWidget` + `setState`、`MaterialApp.routes` を正式採用（[ADR-0004](docs/adr/0004-state-management-and-routing.md)）。riverpod・go_router は導入しない。画面をまたぐ状態共有やネストしたルーティングが必要になったら ADR を起票して判断し直す。
 
 ## 4. 知らないと事故るもの
 
 - **AI 解析は Firebase AI Logic（`FirebaseAI.googleAI()`）** 経由。OpenAI ではない（ADR-0003 で全面移行済み。CLAUDE.md やコード内コメントが OpenAI 時代のままの箇所があれば古い）。使用モデル名は `app/lib/features/record/services/ai_label_service.dart` と `app/lib/features/analysis/services/taste_analysis_service.dart` を見ること。
 - **`--dart-define=USE_MOCK_AI=true` でモック AI に切り替わる。** ローカル確認・単体テストで使う。
-- **ウィジェットが 200 行を超えたら分割する。** 守れていないファイルが複数残っている（`docs/app/REFACTORING_PROPOSAL.md` に一覧）。新規追加のついでに分割せず、分割は独立した PR で行う。
+- **ウィジェットが 200 行を超えたら分割する。** 守れていないファイルが複数残っている（Issue #38）。新規追加のついでに分割せず、分割は独立した PR で行う。
 - **ログイン確認には Firebase エミュレータが要る。** `firebase emulators:start --only auth,firestore,storage` を起動してから `flutter run` すること。
 
 ## 5. Git と経緯の残し方
