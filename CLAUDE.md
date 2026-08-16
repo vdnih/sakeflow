@@ -49,7 +49,7 @@ npm run build
 
 - **AI 解析は Firebase AI Logic（`FirebaseAI.googleAI()`）** 経由。OpenAI ではない（ADR-0003 で全面移行済み。CLAUDE.md やコード内コメントが OpenAI 時代のままの箇所があれば古い）。使用モデル名は `app/lib/features/record/services/ai_label_service.dart` と `app/lib/features/analysis/services/taste_analysis_service.dart` を見ること。
 - **`--dart-define=USE_MOCK_AI=true` でモック AI に切り替わる。** ローカル確認・単体テストで使う。
-- **ウィジェットが 200 行を超えたら分割する。** 守れていないファイルが複数残っている（`docs/app/REFACTORING_PROPOSAL.md` に一覧）。新規追加のついでに分割せず、分割は独立した PR で行う。
+- **ウィジェットが 200 行を超えたら分割する。** 守れていないファイルが複数残っている（Issue #38）。新規追加のついでに分割せず、分割は独立した PR で行う。
 - **ログイン確認には Firebase エミュレータが要る。** `firebase emulators:start --only auth,firestore,storage` を起動してから `flutter run` すること。
 
 ## 5. Git と経緯の残し方
