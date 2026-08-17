@@ -233,7 +233,7 @@ class _SakeCardState extends State<_SakeCard> {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         transform: _hovered
-            ? (Matrix4.identity()..translate(0.0, -2.0))
+            ? (Matrix4.identity()..translateByDouble(0.0, -2.0, 0.0, 1.0))
             : Matrix4.identity(),
         decoration: BoxDecoration(
           color: kSurface2,
