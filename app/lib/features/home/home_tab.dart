@@ -322,7 +322,7 @@ class _TastingNoteCardState extends State<_TastingNoteCard> {
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
             transform: _hovered
-                ? (Matrix4.identity()..translate(0.0, -1.0))
+                ? (Matrix4.identity()..translateByDouble(0.0, -1.0, 0.0, 1.0))
                 : Matrix4.identity(),
             decoration: BoxDecoration(
               color: _hovered ? kSurface3 : kSurface2,

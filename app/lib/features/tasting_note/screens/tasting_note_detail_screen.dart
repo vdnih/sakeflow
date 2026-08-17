@@ -607,7 +607,7 @@ class _TastingNoteDetailScreenState
           ),
           Switch(
             value: _drankLocally,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: kAccentMain,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: kSurface3,
